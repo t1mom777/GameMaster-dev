@@ -36,4 +36,6 @@ The old GM app remains the reference system. This repo is the migration target f
    - public app: `https://game.dima.click`
    - admin: `https://game.dima.click/t1m0m`
 
+Each control-plane deploy applies the checked-in Payload migrations before serving traffic, so a fresh Postgres volume can bootstrap the schema without manual SQL.
+
 The stack is designed so the old GM app can remain live while this repo is brought up separately.
