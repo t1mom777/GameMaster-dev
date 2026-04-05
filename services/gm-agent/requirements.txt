@@ -1,0 +1,5 @@
+aiohttp>=3.12.15
+livekit-agents[google,openai,deepgram,silero,turn-detector]>=1.2.7
+openai>=1.108.1
+python-dotenv>=1.1.1
+qdrant-client>=1.15.1
