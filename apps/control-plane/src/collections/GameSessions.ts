@@ -8,7 +8,17 @@ export const GameSessions: CollectionConfig = {
   access: {
     create: ({ req }) => hasAdminSession(req),
     delete: ({ req }) => hasAdminSession(req),
-    read: ({ req }) => hasAdminSession(req),
+    read: ({ req }) => {
+      if (hasAdminSession(req)) {
+        return true
+      }
+
+      return {
+        publicJoinEnabled: {
+          equals: true,
+        },
+      }
+    },
     update: ({ req }) => hasAdminSession(req),
   },
   admin: {
