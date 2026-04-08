@@ -2,5 +2,15 @@
 set -eu
 
 npm run payload -- migrate
-npm run bootstrap
-HOSTNAME="${HOSTNAME:-0.0.0.0}" node .next/standalone/server.js
+HOSTNAME="${HOSTNAME:-0.0.0.0}" node .next/standalone/server.js &
+SERVER_PID=$!
+
+cleanup() {
+  kill "$SERVER_PID" 2>/dev/null || true
+}
+
+trap cleanup INT TERM
+
+node src/scripts/bootstrap-http.mjs
+
+wait "$SERVER_PID"

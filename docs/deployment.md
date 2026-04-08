@@ -35,7 +35,7 @@ flowchart LR
 
 - Payload is the only web app that needs the main `game.dima.click` domain.
 - LiveKit should be exposed on a separate public subdomain such as `rtc.game.dima.click`.
-- The control-plane container runs `payload migrate` on startup before launching the Next standalone server, so the tracked Postgres schema is applied automatically on deploy.
+- The control-plane container runs `payload migrate` on startup, launches the Next standalone server, and then triggers an internal idempotent bootstrap to seed the first admin and demo content.
 - The current compose uses LiveKit `--dev` mode for migration validation. Before cutover, replace that with hardened LiveKit server config, TURN, and ICE policy.
 - Postgres and Qdrant should use persistent volumes in Coolify.
 

@@ -15,6 +15,7 @@ import { Rulesets } from './collections/Rulesets'
 import { Worlds } from './collections/Worlds'
 import { adminReindexDocumentEndpoint } from './endpoints/admin-reindex-document'
 import { healthEndpoint } from './endpoints/health'
+import { internalBootstrapEndpoint } from './endpoints/internal-bootstrap'
 import { publicJoinEndpoint } from './endpoints/public-join'
 import { publicSessionsEndpoint } from './endpoints/public-sessions'
 import { runtimeRetrieveEndpoint } from './endpoints/runtime-retrieve'
@@ -47,6 +48,7 @@ export default buildConfig({
     healthEndpoint,
     publicSessionsEndpoint,
     publicJoinEndpoint,
+    internalBootstrapEndpoint,
     runtimeSessionEndpoint,
     runtimeRetrieveEndpoint,
     adminReindexDocumentEndpoint,
