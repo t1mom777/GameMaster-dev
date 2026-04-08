@@ -1,13 +1,15 @@
 import type { Endpoint } from 'payload'
 
-import { requireInternalToken } from '@/lib/access'
+import { hasAdminSession, requireInternalToken } from '@/lib/access'
 import { runBootstrap } from '@/lib/bootstrap'
 
 export const internalBootstrapEndpoint: Endpoint = {
   handler: async (req) => {
-    const denied = requireInternalToken(req)
-    if (denied) {
-      return denied
+    if (!hasAdminSession(req)) {
+      const denied = requireInternalToken(req)
+      if (denied) {
+        return denied
+      }
     }
 
     try {
