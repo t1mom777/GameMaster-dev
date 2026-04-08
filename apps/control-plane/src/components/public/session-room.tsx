@@ -241,6 +241,14 @@ export function SessionRoom(props: SessionRoomProps) {
           <span>Participants</span>
           <strong>{participantNames.length || 0}</strong>
         </div>
+        <div>
+          <span>Server</span>
+          <strong>{joinBundle ? new URL(joinBundle.serverUrl).host : 'Available after join'}</strong>
+        </div>
+      </div>
+
+      <div className="room-card__hint">
+        The room client is live once the browser has a token. Remote GM speech plays through the hidden audio attachments on this page.
       </div>
 
       <div className="participant-list">

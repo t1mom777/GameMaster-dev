@@ -24,6 +24,7 @@ The old GM app remains the reference system. This repo is the migration target f
 - [Migration Plan](./docs/migration-plan.md)
 - [Environment Variables](./docs/env-vars.md)
 - [Deployment Instructions](./docs/deployment.md)
+- [Manual Admin Setup](./docs/manual-admin-setup.md)
 - [Backup and Restore Plan](./docs/backup-and-restore.md)
 - [Payload Collections](./docs/payload-collection-model.md)
 - [Qdrant Strategy](./docs/qdrant-strategy.md)

@@ -58,6 +58,14 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
               </strong>
             </div>
           </div>
+          <div className="session-stage__notes">
+            <h2>Before you join</h2>
+            <ul>
+              <li>Pick a player name you want other room members to see.</li>
+              <li>Allow microphone access when the browser asks.</li>
+              <li>Use the reset control if you want a fresh token or a clean room reconnect.</li>
+            </ul>
+          </div>
         </div>
         <SessionRoom
           sessionSlug={session.slug}

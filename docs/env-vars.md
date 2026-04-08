@@ -43,6 +43,11 @@
 | `DEEPGRAM_API_KEY` | yes for voice pipeline | Deepgram STT/TTS key |
 | `GM_SYSTEM_NAME` | no | Cosmetic runtime/system label |
 
+## Provider auth note
+
+- This stack currently expects server-side API credentials for OpenAI, Gemini, and Deepgram.
+- Interactive consumer OAuth or web-login reuse for ChatGPT/Codex or Gemini is not implemented in this repo.
+
 ## Example local set
 
 ```dotenv

@@ -44,28 +44,30 @@ async function main() {
   }
 
   await waitForHealth()
+  try {
+    const response = await fetch(bootstrapUrl, {
+      body: JSON.stringify({ trigger: 'entrypoint' }),
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${bootstrapToken}`,
+        'x-gm-internal-token': bootstrapToken,
+      },
+      method: 'POST',
+    })
 
-  const response = await fetch(bootstrapUrl, {
-    body: JSON.stringify({ trigger: 'entrypoint' }),
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${bootstrapToken}`,
-    },
-    method: 'POST',
-  })
+    if (!response.ok) {
+      const message = await response.text()
+      console.error(`Bootstrap warning: request failed with ${response.status}: ${message.slice(0, 500)}`)
+      return
+    }
 
-  if (!response.ok) {
-    const message = await response.text()
-    throw new Error(`Bootstrap request failed with ${response.status}: ${message.slice(0, 500)}`)
+    const result = await response.json()
+    console.log(
+      `Bootstrap complete: admin=${result.adminEmail || 'existing'}, campaign=${result.campaignId}, session=${result.sessionId}`,
+    )
+  } catch (error) {
+    console.error(`Bootstrap warning: ${error instanceof Error ? error.message : String(error)}`)
   }
-
-  const result = await response.json()
-  console.log(
-    `Bootstrap complete: admin=${result.adminEmail || 'existing'}, campaign=${result.campaignId}, session=${result.sessionId}`,
-  )
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+main()

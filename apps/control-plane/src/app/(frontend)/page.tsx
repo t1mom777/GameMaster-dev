@@ -33,10 +33,37 @@ export default async function HomePage() {
 
   return (
     <main className="shell">
+      <section className="masthead">
+        <div className="pill pill--signal">Migration stack online</div>
+        <div className="masthead__links">
+          <a href="https://game.dima.click/api/gm/health" rel="noreferrer" target="_blank">
+            Health
+          </a>
+          <a href="https://rtc.game.dima.click" rel="noreferrer" target="_blank">
+            RTC
+          </a>
+          <Link href="/t1m0m">Admin</Link>
+        </div>
+      </section>
+
       <section className="hero">
-        <div className="hero__eyebrow">Payload control plane + LiveKit Agents</div>
+        <div className="hero__eyebrow">Payload control plane + LiveKit + Qdrant</div>
         <h1>{siteSettings.siteTitle}</h1>
         <p>{siteSettings.publicDescription}</p>
+        <div className="hero__metrics">
+          <div>
+            <span>Public tables</span>
+            <strong>{sessions.docs.length}</strong>
+          </div>
+          <div>
+            <span>Admin route</span>
+            <strong>/t1m0m</strong>
+          </div>
+          <div>
+            <span>Voice transport</span>
+            <strong>LiveKit realtime</strong>
+          </div>
+        </div>
         <div className="hero__actions">
           <a className="button button--primary" href="#sessions">
             Browse live tables
@@ -45,6 +72,33 @@ export default async function HomePage() {
             Admin
           </Link>
         </div>
+      </section>
+
+      <section className="access-grid">
+        <article className="card card--access">
+          <p className="section-heading__eyebrow">Public entry</p>
+          <h2>Play surface</h2>
+          <p>Players browse public tables, open a session page, and mint a LiveKit token only when they join.</p>
+          <a className="text-link" href="#sessions">
+            Open public sessions
+          </a>
+        </article>
+        <article className="card card--access">
+          <p className="section-heading__eyebrow">Operator entry</p>
+          <h2>Payload admin</h2>
+          <p>Campaigns, worlds, rulesets, sessions, globals, and provider metadata stay in the Payload admin shell.</p>
+          <Link className="text-link" href="/t1m0m">
+            Open admin console
+          </Link>
+        </article>
+        <article className="card card--access">
+          <p className="section-heading__eyebrow">Transport entry</p>
+          <h2>Realtime media</h2>
+          <p>The browser talks to LiveKit on its own subdomain while the control plane stays on the main site.</p>
+          <a className="text-link" href="https://rtc.game.dima.click" rel="noreferrer" target="_blank">
+            Inspect rtc.game.dima.click
+          </a>
+        </article>
       </section>
 
       <section className="overview">
@@ -69,6 +123,42 @@ export default async function HomePage() {
             control under the hidden admin route.
           </p>
         </article>
+      </section>
+
+      <section className="operations">
+        <div className="section-heading">
+          <div>
+            <p className="section-heading__eyebrow">Operator flow</p>
+            <h2>Manual control plane</h2>
+          </div>
+          <p className="section-heading__copy">
+            The app is intentionally thin on custom admin UI. Most serious setup happens in Payload, not in a separate dashboard rewrite.
+          </p>
+        </div>
+
+        <div className="timeline">
+          <article className="timeline__step">
+            <span>01</span>
+            <div>
+              <h3>Log into Payload</h3>
+              <p>Use the hidden admin route and create or update campaigns, rulesets, and public sessions there.</p>
+            </div>
+          </article>
+          <article className="timeline__step">
+            <span>02</span>
+            <div>
+              <h3>Attach your active sources</h3>
+              <p>Rulesets point at the primary rulebook and supporting books. Sessions activate the subset the runtime should use.</p>
+            </div>
+          </article>
+          <article className="timeline__step">
+            <span>03</span>
+            <div>
+              <h3>Flip public join on</h3>
+              <p>Once a session is marked public, it appears here automatically and the join endpoint starts minting room tokens.</p>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section className="sessions" id="sessions">
@@ -101,6 +191,10 @@ export default async function HomePage() {
                 <div>
                   <dt>Room</dt>
                   <dd>{session.roomName}</dd>
+                </div>
+                <div>
+                  <dt>Join route</dt>
+                  <dd>/sessions/{session.slug}</dd>
                 </div>
               </dl>
               <Link className="button button--primary" href={`/sessions/${session.slug}`}>
