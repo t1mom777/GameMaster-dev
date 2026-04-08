@@ -45,11 +45,8 @@ See [Backup and Restore Plan](./backup-and-restore.md) for the operational basel
 
 ## First admin bootstrap
 
-1. Open `https://game.dima.click/t1m0m`
-2. Use Payload’s first-user bootstrap flow
-3. Create:
-   - at least one campaign
-   - one ruleset
-   - one session
-   - at least one uploaded document
-4. Verify the public homepage lists that session
+1. Set `GM_BOOTSTRAP_ADMIN_EMAIL` and `GM_BOOTSTRAP_ADMIN_PASSWORD` in Coolify for the control-plane service.
+2. Deploy or redeploy the control-plane service.
+3. Confirm the startup bootstrap created the first admin, campaign, ruleset, session, runtime defaults, and seed documents.
+4. Open `https://game.dima.click/t1m0m` and log in with the bootstrap admin.
+5. Verify the public homepage lists the seeded session.

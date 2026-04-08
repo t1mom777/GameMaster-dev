@@ -12,6 +12,9 @@
 | `PAYLOAD_PUBLIC_SERVER_URL` | yes | Public Payload base URL, e.g. `https://game.dima.click` |
 | `NEXT_PUBLIC_SITE_URL` | yes | Public frontend origin |
 | `GM_INTERNAL_API_TOKEN` | yes | Internal bearer token shared between Payload and the agent service |
+| `GM_BOOTSTRAP_ADMIN_EMAIL` | required for first deploy | First Payload admin email used by the startup bootstrap |
+| `GM_BOOTSTRAP_ADMIN_PASSWORD` | required for first deploy | First Payload admin password used by the startup bootstrap |
+| `GM_BOOTSTRAP_ADMIN_NAME` | no | Optional display name for the bootstrap admin |
 
 ## LiveKit
 
@@ -61,4 +64,7 @@ OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 GOOGLE_API_KEY=...
 DEEPGRAM_API_KEY=...
 GM_INTERNAL_API_TOKEN=replace-this
+GM_BOOTSTRAP_ADMIN_EMAIL=admin@example.com
+GM_BOOTSTRAP_ADMIN_PASSWORD=change-me-now
+GM_BOOTSTRAP_ADMIN_NAME=GameMaster Operator
 ```
