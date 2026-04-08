@@ -19,6 +19,7 @@ The old GM app remains the reference system. This repo is the migration target f
 
 ## Docs
 
+- [Codex Handoff](./CODEX_HANDOFF.md)
 - [Architecture Overview](./docs/architecture-overview.md)
 - [Migration Plan](./docs/migration-plan.md)
 - [Environment Variables](./docs/env-vars.md)
