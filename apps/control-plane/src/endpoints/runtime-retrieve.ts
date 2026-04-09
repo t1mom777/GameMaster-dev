@@ -46,6 +46,10 @@ export const runtimeRetrieveEndpoint: Endpoint = {
     if (!runtime.activeDocumentIds.length) {
       return Response.json({ hits: [] })
     }
+    const activeDocumentFilterValues = runtime.activeDocumentIds.map((id) => {
+      const numericId = Number(id)
+      return Number.isInteger(numericId) ? numericId : id
+    })
 
     const queryVector = await embedText(data.query)
     const client = getQdrantClient()
@@ -55,7 +59,7 @@ export const runtimeRetrieveEndpoint: Endpoint = {
           {
             key: 'doc_id',
             match: {
-              any: runtime.activeDocumentIds,
+              any: activeDocumentFilterValues,
             },
           },
         ],
