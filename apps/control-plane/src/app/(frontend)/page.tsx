@@ -1,12 +1,18 @@
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getPayload } from 'payload'
 
+import { isGooglePlayerAuthConfigured, readPlayerSessionFromCookieStore } from '@/lib/player-auth'
 import config from '@/payload.config'
 
 export const dynamic = 'force-dynamic'
 
-export default async function HomePage() {
+export default async function HomePage(props: { searchParams?: Promise<{ auth?: string }> }) {
   const payload = await getPayload({ config })
+  const cookieStore = await cookies()
+  const playerSession = readPlayerSessionFromCookieStore(cookieStore)
+  const searchParams = props.searchParams ? await props.searchParams : undefined
+  const googlePlayerAuthConfigured = isGooglePlayerAuthConfigured()
   const siteSettings = await payload.findGlobal({
     slug: 'site-settings',
   })
@@ -60,6 +66,12 @@ export default async function HomePage() {
       ? 'Deepgram is missing, so live speech input and spoken responses are unavailable.'
       : null,
   ].filter(Boolean)
+  const authNotice =
+    searchParams?.auth === 'google-state'
+      ? 'Google sign-in was interrupted or the auth state expired. Try again.'
+      : searchParams?.auth === 'google-failed'
+        ? 'Google sign-in failed before the player session could be created.'
+        : null
   const sessions = await payload.find({
     collection: 'game-sessions',
     depth: 1,
@@ -116,6 +128,24 @@ export default async function HomePage() {
           </div>
         </div>
         <div className="hero__actions">
+          {playerSession ? (
+            <>
+              <a className="button button--google" href="#sessions">
+                Continue as {playerSession.displayName}
+              </a>
+              <a className="button" href="/auth/logout?returnTo=/">
+                Sign out
+              </a>
+            </>
+          ) : googlePlayerAuthConfigured ? (
+            <a className="button button--google" href="/auth/google/start?returnTo=/">
+              Continue with Google
+            </a>
+          ) : (
+            <Link className="button" href="/setup">
+              Google sign-in setup
+            </Link>
+          )}
           <a className="button button--primary" href="#sessions">
             Browse live tables
           </a>
@@ -128,7 +158,67 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {(playerSession || authNotice) && (
+        <section className="auth-banner">
+          <div className="card auth-banner__card">
+            <div>
+              <p className="section-heading__eyebrow">Player identity</p>
+              <h2>{playerSession ? `Signed in as ${playerSession.displayName}` : 'Google sign-in status'}</h2>
+              <p>
+                {playerSession
+                  ? `${playerSession.email} is available on this browser session and will prefill public room joins.`
+                  : authNotice}
+              </p>
+            </div>
+            <div className="auth-banner__actions">
+              {playerSession ? (
+                <>
+                  <a className="button button--google" href="#sessions">
+                    Open sessions
+                  </a>
+                  <a className="button" href="/auth/logout?returnTo=/">
+                    Sign out
+                  </a>
+                </>
+              ) : googlePlayerAuthConfigured ? (
+                <a className="button button--google" href="/auth/google/start?returnTo=/">
+                  Retry Google sign-in
+                </a>
+              ) : (
+                <Link className="button" href="/setup">
+                  Finish Google setup
+                </Link>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="access-grid">
+        <article className="card card--access">
+          <p className="section-heading__eyebrow">Identity entry</p>
+          <h2>Google player auth</h2>
+          <p>
+            {playerSession
+              ? 'Your Google player session is active on this browser. Public joins reuse that identity instead of creating another guest profile.'
+              : googlePlayerAuthConfigured
+                ? 'Sign in before you join and the session page will prefill your player identity from Google.'
+                : 'Google sign-in is not configured in the current deployment yet.'}
+          </p>
+          {playerSession ? (
+            <a className="text-link" href="/auth/logout?returnTo=/">
+              Sign out
+            </a>
+          ) : googlePlayerAuthConfigured ? (
+            <a className="text-link" href="/auth/google/start?returnTo=/">
+              Sign in with Google
+            </a>
+          ) : (
+            <Link className="text-link" href="/setup">
+              Open setup requirements
+            </Link>
+          )}
+        </article>
         <article className="card card--access">
           <p className="section-heading__eyebrow">Public entry</p>
           <h2>Play surface</h2>

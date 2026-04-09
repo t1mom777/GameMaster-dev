@@ -43,9 +43,18 @@
 | `DEEPGRAM_API_KEY` | yes for voice pipeline | Deepgram STT/TTS key |
 | `GM_SYSTEM_NAME` | no | Cosmetic runtime/system label |
 
-## Provider auth note
+## Public player auth
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | yes for Google player sign-in | OAuth client id used by the public homepage login |
+| `GOOGLE_CLIENT_SECRET` | yes for Google player sign-in | OAuth client secret used for the server-side code exchange |
+| `GOOGLE_REDIRECT_URI` | recommended | Explicit callback URL, e.g. `https://game.dima.click/auth/google/callback` |
+
+## Provider auth notes
 
 - This stack currently expects server-side API credentials for OpenAI, Gemini, and Deepgram.
+- Public Google player sign-in is implemented separately from Gemini runtime auth.
 - Interactive consumer OAuth or web-login reuse for ChatGPT/Codex or Gemini is not implemented in this repo.
 
 ## Example local set
@@ -68,6 +77,9 @@ OPENAI_API_KEY=...
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 GOOGLE_API_KEY=...
 DEEPGRAM_API_KEY=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=https://game.dima.click/auth/google/callback
 GM_INTERNAL_API_TOKEN=replace-this
 GM_BOOTSTRAP_ADMIN_EMAIL=admin@example.com
 GM_BOOTSTRAP_ADMIN_PASSWORD=change-me-now

@@ -10,14 +10,21 @@ type JoinBundle = {
   token: string
 }
 
+type AuthenticatedPlayer = {
+  displayName: string
+  email: string
+}
+
 type SessionRoomProps = {
+  authenticatedPlayer?: AuthenticatedPlayer | null
+  initialPlayerName?: string
   sessionSlug: string
   title: string
   welcomeText: string
 }
 
 export function SessionRoom(props: SessionRoomProps) {
-  const [playerName, setPlayerName] = useState('')
+  const [playerName, setPlayerName] = useState(props.initialPlayerName || '')
   const [joinBundle, setJoinBundle] = useState<JoinBundle | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isJoining, setIsJoining] = useState(false)
@@ -28,11 +35,21 @@ export function SessionRoom(props: SessionRoomProps) {
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map())
 
   useEffect(() => {
+    if (props.authenticatedPlayer?.displayName) {
+      setPlayerName(props.authenticatedPlayer.displayName)
+      return
+    }
+
     const stored = window.localStorage.getItem('gm-player-name')
     if (stored) {
       setPlayerName(stored)
+      return
     }
-  }, [])
+
+    if (props.initialPlayerName) {
+      setPlayerName(props.initialPlayerName)
+    }
+  }, [props.authenticatedPlayer?.displayName, props.initialPlayerName])
 
   useEffect(() => {
     if (!joinBundle) {
@@ -190,6 +207,14 @@ export function SessionRoom(props: SessionRoomProps) {
       </div>
 
       {props.welcomeText && <p className="room-card__welcome">{props.welcomeText}</p>}
+
+      {props.authenticatedPlayer && (
+        <div className="auth-inline-card">
+          <span className="pill pill--signal">Google player session</span>
+          <strong>{props.authenticatedPlayer.displayName}</strong>
+          <p>{props.authenticatedPlayer.email}</p>
+        </div>
+      )}
 
       <label className="field">
         <span>Player name</span>

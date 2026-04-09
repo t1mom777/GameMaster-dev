@@ -106,6 +106,31 @@ Required in Coolify for a full voice stack:
 - `DEEPGRAM_API_KEY`
   Used for STT/TTS.
 
+## Google player sign-in
+
+Homepage Google sign-in is a separate public auth feature for players. It does not replace admin auth at `/t1m0m` and it does not replace the Gemini API key.
+
+Required in Coolify for public Google login:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI=https://game.dima.click/auth/google/callback`
+
+Google Cloud console setup:
+
+1. Create or reuse a Web application OAuth client.
+2. Add `https://game.dima.click` as an authorized JavaScript origin.
+3. Add `https://game.dima.click/auth/google/callback` as an authorized redirect URI.
+4. Redeploy the control-plane after saving the env vars in Coolify.
+
+Player flow:
+
+1. Open `https://game.dima.click`.
+2. Click `Continue with Google`.
+3. Complete Google consent.
+4. Return to the homepage signed in.
+5. Open a session page and join; the player name prefills from the Google session.
+
 ## Important auth limitation
 
 This stack does **not** currently support using a consumer ChatGPT/Codex login or a consumer Gemini login via OAuth as the backend model credential.

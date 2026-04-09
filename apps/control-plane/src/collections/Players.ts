@@ -11,13 +11,46 @@ export const Players: CollectionConfig = {
     update: ({ req }) => hasAdminSession(req),
   },
   admin: {
-    defaultColumns: ['displayName', 'lastSeenAt', 'preferredVoiceMode'],
+    defaultColumns: ['displayName', 'authProvider', 'email', 'lastSeenAt', 'preferredVoiceMode'],
     useAsTitle: 'displayName',
   },
   fields: [
     {
       name: 'displayName',
       required: true,
+      type: 'text',
+    },
+    {
+      defaultValue: 'guest',
+      name: 'authProvider',
+      options: [
+        {
+          label: 'Guest',
+          value: 'guest',
+        },
+        {
+          label: 'Google',
+          value: 'google',
+        },
+      ],
+      required: true,
+      type: 'select',
+    },
+    {
+      name: 'email',
+      type: 'email',
+    },
+    {
+      admin: {
+        readOnly: true,
+      },
+      index: true,
+      name: 'googleSub',
+      type: 'text',
+      unique: true,
+    },
+    {
+      name: 'avatarUrl',
       type: 'text',
     },
     {

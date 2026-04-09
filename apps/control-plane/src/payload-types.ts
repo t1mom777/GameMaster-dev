@@ -169,6 +169,10 @@ export interface Admin {
 export interface Player {
   id: number;
   displayName: string;
+  authProvider: 'guest' | 'google';
+  email?: string | null;
+  googleSub?: string | null;
+  avatarUrl?: string | null;
   preferredVoiceMode?: ('auto-vad' | 'push-to-talk' | 'text-only') | null;
   lastSeenAt?: string | null;
   lastRoomName?: string | null;
@@ -423,6 +427,10 @@ export interface AdminsSelect<T extends boolean = true> {
  */
 export interface PlayersSelect<T extends boolean = true> {
   displayName?: T;
+  authProvider?: T;
+  email?: T;
+  googleSub?: T;
+  avatarUrl?: T;
   preferredVoiceMode?: T;
   lastSeenAt?: T;
   lastRoomName?: T;

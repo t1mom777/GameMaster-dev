@@ -189,6 +189,11 @@ textarea {
   border-color: rgba(220, 179, 106, 0.3);
 }
 
+.button--google {
+  background: linear-gradient(135deg, rgba(127, 209, 195, 0.18), rgba(94, 146, 255, 0.18));
+  border-color: rgba(127, 209, 195, 0.28);
+}
+
 .pill--warning {
   background: rgba(255, 143, 143, 0.1);
   border-color: rgba(255, 143, 143, 0.22);
@@ -247,6 +252,29 @@ textarea {
 
 .sessions {
   margin-top: 56px;
+}
+
+.auth-banner {
+  margin-top: 24px;
+}
+
+.auth-banner__card {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.auth-banner__card h2 {
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
+  margin: 0 0 8px;
+}
+
+.auth-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .section-heading {
@@ -407,6 +435,26 @@ textarea {
 .session-stage__notes {
   margin-top: 18px;
   padding: 16px 18px;
+}
+
+.auth-inline-card {
+  background: rgba(127, 209, 195, 0.08);
+  border: 1px solid rgba(127, 209, 195, 0.2);
+  border-radius: 18px;
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 16px 18px;
+}
+
+.auth-inline-card strong {
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
+  font-size: 1.05rem;
+}
+
+.auth-inline-card p {
+  color: var(--muted);
+  margin: 0;
 }
 
 .provider-card h3,
@@ -598,7 +646,8 @@ textarea {
   }
 
   .setup-header,
-  .status-list__item {
+  .status-list__item,
+  .auth-banner__card {
     grid-template-columns: 1fr;
   }
 

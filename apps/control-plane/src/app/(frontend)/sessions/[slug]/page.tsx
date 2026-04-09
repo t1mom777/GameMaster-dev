@@ -1,7 +1,9 @@
+import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 
 import { SessionRoom } from '@/components/public/session-room'
+import { readPlayerSessionFromCookieStore } from '@/lib/player-auth'
 import config from '@/payload.config'
 
 export const dynamic = 'force-dynamic'
@@ -9,6 +11,7 @@ export const dynamic = 'force-dynamic'
 export default async function SessionPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params
   const payload = await getPayload({ config })
+  const playerSession = readPlayerSessionFromCookieStore(await cookies())
   const sessions = await payload.find({
     collection: 'game-sessions',
     depth: 1,
@@ -78,6 +81,15 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
           </div>
         </div>
         <SessionRoom
+          authenticatedPlayer={
+            playerSession
+              ? {
+                  displayName: playerSession.displayName,
+                  email: playerSession.email,
+                }
+              : null
+          }
+          initialPlayerName={playerSession?.displayName || ''}
           sessionSlug={session.slug}
           title={session.title}
           welcomeText={session.welcomeText || ''}

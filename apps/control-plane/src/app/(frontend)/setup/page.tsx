@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getPayload } from 'payload'
 
+import { getGoogleRedirectUri, isGooglePlayerAuthConfigured } from '@/lib/player-auth'
 import config from '@/payload.config'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,8 @@ export default async function SetupPage() {
   const openAiReady = Boolean(process.env.OPENAI_API_KEY)
   const googleReady = Boolean(process.env.GOOGLE_API_KEY)
   const deepgramReady = Boolean(process.env.DEEPGRAM_API_KEY)
+  const googlePlayerAuthReady = isGooglePlayerAuthConfigured()
+  const googleRedirectUri = getGoogleRedirectUri()
 
   const providerStatus = [
     {
@@ -28,6 +31,13 @@ export default async function SetupPage() {
       detail: 'Gemini runtime calls when Runtime Defaults use Gemini.',
       label: 'Google Gemini API',
       ready: googleReady,
+    },
+    {
+      detail: googleRedirectUri
+        ? `Public player login via Google OAuth callback ${googleRedirectUri}.`
+        : 'Public player login via Google OAuth. Set client id, client secret, and redirect URI.',
+      label: 'Google Player OAuth',
+      ready: googlePlayerAuthReady,
     },
     {
       detail: 'Realtime speech-to-text and text-to-speech.',
@@ -71,6 +81,9 @@ export default async function SetupPage() {
     !deepgramReady
       ? 'Deepgram is missing, so the GM can still text-fallback but not complete the intended voice loop.'
       : null,
+    !googlePlayerAuthReady
+      ? 'Public Google sign-in is disabled until GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are present and the redirect URI matches this deployment.'
+      : null,
   ].filter(Boolean)
 
   const accessPoints = [
@@ -103,6 +116,7 @@ export default async function SetupPage() {
 
   const manualSteps = [
     'Log into Payload at /t1m0m.',
+    'If you want Google player sign-in on the homepage, configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI in Coolify first.',
     'Open Runtime Defaults and confirm the LLM, STT, TTS, and retrieval defaults.',
     'After changing provider env vars in Coolify, redeploy or restart control-plane and gm-agent so the live containers see them.',
     'Open Site Settings and update the public title, tagline, and description.',
@@ -169,7 +183,7 @@ export default async function SetupPage() {
             ))}
           </div>
           <p className="setup-note">
-            Google web login and ChatGPT web login are not used as backend model auth in this stack. Server-to-server runtime calls still require API credentials.
+            Google player login is separate from Gemini model auth. Public browser sign-in uses OAuth client credentials, while server-to-server runtime calls still require API keys.
           </p>
         </article>
       </section>
@@ -228,6 +242,7 @@ export default async function SetupPage() {
             <li>Documents: primary rulebook, supporting books, and reindex requests.</li>
             <li>Game Sessions: public join toggle, room name, welcome text, and active source list.</li>
             <li>Runtime Defaults: LLM, STT, TTS, retrieval, and join greeting.</li>
+            <li>Players: guest and Google-authenticated player profiles created by public joins.</li>
           </ul>
         </article>
       </section>
