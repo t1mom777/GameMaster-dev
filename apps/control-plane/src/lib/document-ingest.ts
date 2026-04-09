@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import fs from 'fs/promises'
 import path from 'path'
 import pdfParse from 'pdf-parse'
@@ -103,6 +104,17 @@ function relationId(input: { id?: string | number } | string | number | null | u
   return input.id !== undefined ? String(input.id) : null
 }
 
+function qdrantPointId(documentId: number | string, chunkIndex: number): number | string {
+  const numericId = Number(documentId)
+
+  if (Number.isInteger(numericId) && numericId >= 0) {
+    return numericId * 100000 + chunkIndex
+  }
+
+  const hex = crypto.createHash('sha1').update(`${documentId}:${chunkIndex}`).digest('hex').slice(0, 32)
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export async function removeDocumentVectors(docId: string): Promise<void> {
   const client = getQdrantClient()
   await client.delete(getQdrantCollection(), {
@@ -141,7 +153,7 @@ export async function ingestDocument(payload: Payload, document: DocumentRecord)
 
   const points = [firstEmbedding, ...(await Promise.all(chunks.slice(1).map((chunk) => embedText(chunk))))].map(
     (vector, index) => ({
-      id: `${document.id}:${index}`,
+      id: qdrantPointId(document.id, index),
       payload: {
         chunk_index: index,
         content: chunks[index],
