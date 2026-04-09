@@ -1,7 +1,10 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
+import { sql } from '@payloadcms/db-postgres'
 import type { Payload } from 'payload'
+
+import { ingestDocument } from './document-ingest'
 
 type BaseRecord = {
   id?: string | number
@@ -130,30 +133,92 @@ async function upsertSeedDocument(
 ): Promise<BootstrapRecord> {
   const storedFile = await materializeSeedDocument(document)
   const existing = await findBySlug<BaseRecord & Record<string, unknown>>(payload, 'documents', document.slug)
-  const nextData = {
-    ...extraData,
-    filename: storedFile.filename,
-    filesize: storedFile.filesize,
-    mimeType: storedFile.mimeType,
-    reindexRequested: true,
-    slug: document.slug,
-    title: document.title,
+  const rulesetId = relationId(extraData.ruleset as { id?: string | number } | string | number | null | undefined)
+  const sessionId = relationId(extraData.session as { id?: string | number } | string | number | null | undefined)
+  const db = payload.db as {
+    drizzle: unknown
+    execute: (args: { drizzle: unknown; sql: unknown }) => Promise<{ rows: Array<{ id: number | string }> }>
   }
+
+  let docId = existing?.id ? String(existing.id) : ''
 
   if (existing?.id) {
-    return payload.update({
-      collection: 'documents',
-      data: nextData,
-      id: String(existing.id),
-      overrideAccess: true,
-    } as never) as unknown as Promise<BootstrapRecord>
+    await db.execute({
+      drizzle: db.drizzle,
+      sql: sql`
+        UPDATE documents
+        SET
+          title = ${document.title},
+          slug = ${document.slug},
+          kind = ${String(extraData.kind || 'supporting-book')},
+          status = ${String(extraData.status || 'uploaded')},
+          is_active = ${extraData.isActive !== false},
+          is_primary = ${Boolean(extraData.isPrimary)},
+          ruleset_id = ${rulesetId ? Number(rulesetId) : null},
+          session_id = ${sessionId ? Number(sessionId) : null},
+          reindex_requested = true,
+          filename = ${storedFile.filename},
+          mime_type = ${storedFile.mimeType},
+          filesize = ${storedFile.filesize},
+          updated_at = now()
+        WHERE id = ${Number(existing.id)}
+      `,
+    })
+  } else {
+    const inserted = await db.execute({
+      drizzle: db.drizzle,
+      sql: sql`
+        INSERT INTO documents (
+          title,
+          slug,
+          kind,
+          status,
+          is_active,
+          is_primary,
+          ruleset_id,
+          session_id,
+          reindex_requested,
+          filename,
+          mime_type,
+          filesize
+        ) VALUES (
+          ${document.title},
+          ${document.slug},
+          ${String(extraData.kind || 'supporting-book')},
+          ${String(extraData.status || 'uploaded')},
+          ${extraData.isActive !== false},
+          ${Boolean(extraData.isPrimary)},
+          ${rulesetId ? Number(rulesetId) : null},
+          ${sessionId ? Number(sessionId) : null},
+          true,
+          ${storedFile.filename},
+          ${storedFile.mimeType},
+          ${storedFile.filesize}
+        )
+        RETURNING id
+      `,
+    })
+
+    docId = String(inserted.rows[0]?.id || '')
   }
 
-  return payload.create({
+  if (!docId) {
+    throw new Error(`Failed to create bootstrap document record for ${document.slug}.`)
+  }
+
+  const storedDoc = (await payload.findByID({
     collection: 'documents',
-    data: nextData,
+    id: docId,
     overrideAccess: true,
-  } as never) as unknown as Promise<BootstrapRecord>
+  } as never)) as unknown as BootstrapRecord
+
+  await ingestDocument(payload, storedDoc as never)
+
+  return (await payload.findByID({
+    collection: 'documents',
+    id: docId,
+    overrideAccess: true,
+  } as never)) as unknown as BootstrapRecord
 }
 
 async function ensureSeedFiles() {
@@ -173,6 +238,18 @@ function getSeedMimeType(filePath: string): string {
   }
 
   return 'text/plain'
+}
+
+function relationId(input: { id?: string | number } | string | number | null | undefined): string | null {
+  if (!input) {
+    return null
+  }
+
+  if (typeof input === 'string' || typeof input === 'number') {
+    return String(input)
+  }
+
+  return input.id !== undefined ? String(input.id) : null
 }
 
 async function materializeSeedDocument(document: SeedDocument) {
