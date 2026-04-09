@@ -19,6 +19,13 @@ type SeedDocument = {
   filePath: string
 }
 
+type UploadFile = {
+  data: Buffer
+  mimetype: string
+  name: string
+  size: number
+}
+
 type BootstrapCollection =
   | 'admins'
   | 'campaigns'
@@ -127,6 +134,7 @@ async function upsertSeedDocument(
   document: SeedDocument,
   extraData: Record<string, unknown>,
 ): Promise<BootstrapRecord> {
+  const file = await buildUploadFile(document.filePath)
   const existing = await findBySlug<BaseRecord & Record<string, unknown>>(payload, 'documents', document.slug)
 
   if (existing?.id) {
@@ -137,6 +145,7 @@ async function upsertSeedDocument(
         slug: document.slug,
         title: document.title,
       },
+      file,
       id: String(existing.id),
       overrideAccess: true,
     } as never) as unknown as Promise<BootstrapRecord>
@@ -149,7 +158,7 @@ async function upsertSeedDocument(
       slug: document.slug,
       title: document.title,
     },
-    filePath: document.filePath,
+    file,
     overrideAccess: true,
   } as never) as unknown as Promise<BootstrapRecord>
 }
@@ -158,8 +167,35 @@ async function ensureSeedFiles() {
   await fs.mkdir(seedRoot, { recursive: true })
 }
 
+function getSeedMimeType(filePath: string): string {
+  const extension = path.extname(filePath).toLowerCase()
+
+  if (extension === '.pdf') {
+    return 'application/pdf'
+  }
+
+  if (extension === '.md') {
+    return 'text/markdown'
+  }
+
+  return 'text/plain'
+}
+
+async function buildUploadFile(filePath: string): Promise<UploadFile> {
+  const data = await fs.readFile(filePath)
+
+  return {
+    data,
+    mimetype: getSeedMimeType(filePath),
+    name: path.basename(filePath),
+    size: data.byteLength,
+  }
+}
+
 export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> {
   await ensureSeedFiles()
+  const llmProvider = process.env.GOOGLE_API_KEY ? 'gemini' : 'openai'
+  const llmModel = llmProvider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4.1-mini'
 
   await ensureAdmin(payload)
 
@@ -290,8 +326,8 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
     allowTextFallback: true,
     joinGreeting:
       'Welcome to the table. Introduce the current scene, confirm the player intent, and start with a strong first prompt.',
-    llmModel: 'gemini-2.5-flash',
-    llmProvider: 'gemini',
+    llmModel,
+    llmProvider,
     maxParticipants: 6,
     retrievalTopK: 5,
     sttModel: 'nova-3',
