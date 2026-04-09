@@ -189,9 +189,17 @@ textarea {
   border-color: rgba(220, 179, 106, 0.3);
 }
 
+.pill--warning {
+  background: rgba(255, 143, 143, 0.1);
+  border-color: rgba(255, 143, 143, 0.22);
+  color: var(--danger);
+}
+
 .access-grid,
 .overview,
-.session-grid {
+.provider-grid,
+.session-grid,
+.setup-grid {
   display: grid;
   gap: 18px;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -400,6 +408,90 @@ textarea {
   padding: 16px 18px;
 }
 
+.provider-card h3,
+.setup-header h1 {
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
+  margin: 14px 0 10px;
+}
+
+.provider-card--cta {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+}
+
+.shell--setup {
+  display: grid;
+  gap: 28px;
+}
+
+.setup-header {
+  align-items: end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.setup-header p {
+  color: var(--muted);
+  max-width: 64ch;
+}
+
+.access-list,
+.status-list {
+  display: grid;
+  gap: 14px;
+}
+
+.access-list__item,
+.status-list__item {
+  align-items: center;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.access-list__item strong,
+.status-list__item strong {
+  display: block;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
+  margin-top: 4px;
+}
+
+.access-list__item span,
+.setup-note {
+  color: var(--muted);
+}
+
+.status-list__item {
+  grid-template-columns: 1fr auto;
+}
+
+.status-list__item p {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.setup-list {
+  color: var(--muted);
+  display: grid;
+  gap: 12px;
+  line-height: 1.7;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.setup-list--bullets {
+  list-style: disc;
+}
+
+.setup-note {
+  margin: 16px 0 0;
+}
+
 .session-stage__notes ul {
   margin: 0;
   padding-left: 18px;
@@ -449,6 +541,11 @@ textarea {
   .masthead {
     align-items: start;
     flex-direction: column;
+  }
+
+  .setup-header,
+  .status-list__item {
+    grid-template-columns: 1fr;
   }
 
   .timeline__step {

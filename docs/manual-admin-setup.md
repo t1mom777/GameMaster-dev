@@ -3,6 +3,7 @@
 ## Access points
 
 - Public app: `https://game.dima.click`
+- Public setup guide: `https://game.dima.click/setup`
 - Public session page pattern: `https://game.dima.click/sessions/<session-slug>`
 - Payload admin: `https://game.dima.click/t1m0m`
 - Control-plane health: `https://game.dima.click/api/gm/health`
@@ -23,6 +24,15 @@ Use the Payload admin for:
 - `Provider Connections`
 
 The migration stack is intentionally built so advanced admin behavior stays inside Payload instead of a second custom admin frontend.
+
+## Browser-side troubleshooting
+
+If the public site renders as plain text or the admin route looks blank:
+
+1. Hard refresh the page.
+2. Confirm `/_next/static/...` assets return `200`.
+3. Confirm the latest control-plane deployment finished cleanly.
+4. Re-open `https://game.dima.click/setup` and check provider readiness there.
 
 ## Manual first-pass setup
 

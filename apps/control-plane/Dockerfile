@@ -47,10 +47,11 @@ RUN apk add --no-cache libc6-compat
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Keep the built app plus Payload source and migrations so the container can
-# apply tracked Postgres migrations before serving traffic.
+# Next standalone output must live at the container root so server.js resolves
+# /_next/static assets correctly in production.
+COPY --from=builder /app/.next/standalone ./
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/package.json ./package.json

@@ -10,6 +10,23 @@ export default async function HomePage() {
   const siteSettings = await payload.findGlobal({
     slug: 'site-settings',
   })
+  const providerStatus = [
+    {
+      detail: 'Required for document embeddings and optional OpenAI runtime usage.',
+      label: 'OpenAI',
+      ready: Boolean(process.env.OPENAI_API_KEY),
+    },
+    {
+      detail: 'Required when Runtime Defaults use Gemini models.',
+      label: 'Google Gemini',
+      ready: Boolean(process.env.GOOGLE_API_KEY),
+    },
+    {
+      detail: 'Required for realtime speech input and spoken responses.',
+      label: 'Deepgram',
+      ready: Boolean(process.env.DEEPGRAM_API_KEY),
+    },
+  ]
   const sessions = await payload.find({
     collection: 'game-sessions',
     depth: 1,
@@ -42,6 +59,7 @@ export default async function HomePage() {
           <a href="https://rtc.game.dima.click" rel="noreferrer" target="_blank">
             RTC
           </a>
+          <Link href="/setup">Setup</Link>
           <Link href="/t1m0m">Admin</Link>
         </div>
       </section>
@@ -68,6 +86,9 @@ export default async function HomePage() {
           <a className="button button--primary" href="#sessions">
             Browse live tables
           </a>
+          <Link className="button" href="/setup">
+            Setup guide
+          </Link>
           <Link className="button" href="/t1m0m">
             Admin
           </Link>
@@ -157,6 +178,38 @@ export default async function HomePage() {
               <h3>Flip public join on</h3>
               <p>Once a session is marked public, it appears here automatically and the join endpoint starts minting room tokens.</p>
             </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="operations">
+        <div className="section-heading">
+          <div>
+            <p className="section-heading__eyebrow">Provider readiness</p>
+            <h2>Runtime keys and admin entry</h2>
+          </div>
+          <p className="section-heading__copy">
+            Server-side model calls use API credentials. Browser login sessions are not used as backend runtime auth.
+          </p>
+        </div>
+
+        <div className="provider-grid">
+          {providerStatus.map((provider) => (
+            <article className="card provider-card" key={provider.label}>
+              <div className={`pill ${provider.ready ? 'pill--signal' : 'pill--warning'}`}>
+                {provider.ready ? 'Configured' : 'Missing'}
+              </div>
+              <h3>{provider.label}</h3>
+              <p>{provider.detail}</p>
+            </article>
+          ))}
+          <article className="card provider-card provider-card--cta">
+            <p className="section-heading__eyebrow">Operator docs</p>
+            <h3>Setup and admin instructions</h3>
+            <p>Use the public setup page for access points, manual bootstrap steps, and production checks.</p>
+            <Link className="button" href="/setup">
+              Open setup guide
+            </Link>
           </article>
         </div>
       </section>
