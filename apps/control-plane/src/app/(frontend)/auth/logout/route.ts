@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { PLAYER_AUTH_COOKIE, sanitizeReturnTo } from '@/lib/player-auth'
+import { PLAYER_AUTH_COOKIE, sanitizeReturnTo, toPublicUrl } from '@/lib/player-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   const returnTo = sanitizeReturnTo(request.nextUrl.searchParams.get('returnTo'))
-  const response = NextResponse.redirect(new URL(returnTo, request.url))
+  const response = NextResponse.redirect(toPublicUrl(returnTo, request.headers))
 
   response.cookies.set({
     maxAge: 0,

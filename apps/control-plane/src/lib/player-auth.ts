@@ -114,6 +114,23 @@ function readCookieHeader(headers: HeaderBag): string {
   return raw || ''
 }
 
+function readHeaderValue(headers: HeaderBag, name: string): string {
+  if (!headers) {
+    return ''
+  }
+
+  if (headers instanceof Headers) {
+    return headers.get(name) || headers.get(name.toLowerCase()) || ''
+  }
+
+  const raw = headers[name] ?? headers[name.toLowerCase()] ?? headers[name.toUpperCase()]
+  if (Array.isArray(raw)) {
+    return raw[0] || ''
+  }
+
+  return raw || ''
+}
+
 function parseCookieHeader(cookieHeader: string): Map<string, string> {
   const cookies = new Map<string, string>()
 
@@ -189,6 +206,33 @@ export function sanitizeReturnTo(input?: string | null): string {
   }
 
   return input
+}
+
+export function getPublicOrigin(headers?: HeaderBag): string {
+  const explicitSiteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || process.env.PAYLOAD_PUBLIC_SERVER_URL?.trim() || ''
+  const forwardedProto = readHeaderValue(headers, 'x-forwarded-proto').split(',')[0]?.trim() || ''
+  const forwardedHost = readHeaderValue(headers, 'x-forwarded-host').split(',')[0]?.trim() || ''
+
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`
+  }
+
+  const host = readHeaderValue(headers, 'host').split(',')[0]?.trim() || ''
+  if (forwardedProto && host) {
+    return `${forwardedProto}://${host}`
+  }
+
+  return explicitSiteUrl.replace(/\/$/, '')
+}
+
+export function toPublicUrl(path: string, headers?: HeaderBag): string {
+  const origin = getPublicOrigin(headers)
+  if (!origin) {
+    return sanitizeReturnTo(path)
+  }
+
+  return new URL(sanitizeReturnTo(path), origin).toString()
 }
 
 export function isGooglePlayerAuthConfigured(): boolean {

@@ -9,6 +9,7 @@ import {
   fetchGoogleUserInfo,
   parseGoogleStateCookie,
   sanitizeReturnTo,
+  toPublicUrl,
   upsertGooglePlayer,
 } from '@/lib/player-auth'
 import config from '@/payload.config'
@@ -16,7 +17,7 @@ import config from '@/payload.config'
 export const dynamic = 'force-dynamic'
 
 function redirectWithError(request: NextRequest, returnTo: string, code: string) {
-  const destination = new URL(sanitizeReturnTo(returnTo), request.url)
+  const destination = new URL(toPublicUrl(sanitizeReturnTo(returnTo), request.headers))
   destination.searchParams.set('auth', code)
 
   const response = NextResponse.redirect(destination)
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     const profile = await fetchGoogleUserInfo(code)
     const playerSession = await upsertGooglePlayer(payload, profile)
 
-    const response = NextResponse.redirect(new URL(returnTo, request.url))
+    const response = NextResponse.redirect(toPublicUrl(returnTo, request.headers))
     response.cookies.set({
       httpOnly: true,
       maxAge: PLAYER_AUTH_TTL_SECS,

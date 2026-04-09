@@ -6,6 +6,7 @@ import {
   googleStateCookieTtl,
   isGooglePlayerAuthConfigured,
   sanitizeReturnTo,
+  toPublicUrl,
 } from '@/lib/player-auth'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   const returnTo = sanitizeReturnTo(request.nextUrl.searchParams.get('returnTo'))
 
   if (!isGooglePlayerAuthConfigured()) {
-    return NextResponse.redirect(new URL('/setup', request.url))
+    return NextResponse.redirect(toPublicUrl('/setup', request.headers))
   }
 
   const { cookieValue, url } = buildGoogleAuthUrl(returnTo)
