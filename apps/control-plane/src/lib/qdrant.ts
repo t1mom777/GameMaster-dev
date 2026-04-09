@@ -26,10 +26,21 @@ export function getQdrantClient(): QdrantClient {
 export async function ensureKnowledgeCollection(vectorSize: number): Promise<void> {
   const client = getQdrantClient()
   const collection = getQdrantCollection()
+  let needsCreate = false
 
   try {
-    await client.getCollection(collection)
+    const existing = await client.getCollection(collection)
+    const configuredVectors = (existing as { config?: { params?: { vectors?: { size?: number } } } }).config?.params?.vectors
+
+    if (configuredVectors?.size && configuredVectors.size !== vectorSize) {
+      await client.deleteCollection(collection)
+      needsCreate = true
+    }
   } catch {
+    needsCreate = true
+  }
+
+  if (needsCreate) {
     await client.createCollection(collection, {
       vectors: {
         distance: 'Cosine',
