@@ -19,13 +19,6 @@ type SeedDocument = {
   filePath: string
 }
 
-type UploadFile = {
-  data: Buffer
-  mimetype: string
-  name: string
-  size: number
-}
-
 type BootstrapCollection =
   | 'admins'
   | 'campaigns'
@@ -47,6 +40,7 @@ const bootstrapAdminPassword = process.env.GM_BOOTSTRAP_ADMIN_PASSWORD?.trim() |
 const bootstrapAdminName = process.env.GM_BOOTSTRAP_ADMIN_NAME?.trim() || 'GameMaster Operator'
 
 const seedRoot = path.resolve(process.cwd(), 'src/seed-content')
+const uploadRoot = path.resolve(process.cwd(), 'media/documents')
 
 async function findBySlug<T extends BaseRecord>(payload: Payload, collection: BootstrapCollection, slug: string) {
   const result = await payload.find({
@@ -134,18 +128,22 @@ async function upsertSeedDocument(
   document: SeedDocument,
   extraData: Record<string, unknown>,
 ): Promise<BootstrapRecord> {
-  const file = await buildUploadFile(document.filePath)
+  const storedFile = await materializeSeedDocument(document)
   const existing = await findBySlug<BaseRecord & Record<string, unknown>>(payload, 'documents', document.slug)
+  const nextData = {
+    ...extraData,
+    filename: storedFile.filename,
+    filesize: storedFile.filesize,
+    mimeType: storedFile.mimeType,
+    reindexRequested: true,
+    slug: document.slug,
+    title: document.title,
+  }
 
   if (existing?.id) {
     return payload.update({
       collection: 'documents',
-      data: {
-        ...extraData,
-        slug: document.slug,
-        title: document.title,
-      },
-      file,
+      data: nextData,
       id: String(existing.id),
       overrideAccess: true,
     } as never) as unknown as Promise<BootstrapRecord>
@@ -153,18 +151,14 @@ async function upsertSeedDocument(
 
   return payload.create({
     collection: 'documents',
-    data: {
-      ...extraData,
-      slug: document.slug,
-      title: document.title,
-    },
-    file,
+    data: nextData,
     overrideAccess: true,
   } as never) as unknown as Promise<BootstrapRecord>
 }
 
 async function ensureSeedFiles() {
   await fs.mkdir(seedRoot, { recursive: true })
+  await fs.mkdir(uploadRoot, { recursive: true })
 }
 
 function getSeedMimeType(filePath: string): string {
@@ -181,14 +175,17 @@ function getSeedMimeType(filePath: string): string {
   return 'text/plain'
 }
 
-async function buildUploadFile(filePath: string): Promise<UploadFile> {
-  const data = await fs.readFile(filePath)
+async function materializeSeedDocument(document: SeedDocument) {
+  const extension = path.extname(document.filePath).toLowerCase() || '.txt'
+  const data = await fs.readFile(document.filePath)
+  const filename = `${document.slug}${extension}`
+  const targetPath = path.join(uploadRoot, filename)
+  await fs.writeFile(targetPath, data)
 
   return {
-    data,
-    mimetype: getSeedMimeType(filePath),
-    name: path.basename(filePath),
-    size: data.byteLength,
+    filename,
+    filesize: data.byteLength,
+    mimeType: getSeedMimeType(document.filePath),
   }
 }
 
@@ -235,7 +232,7 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
       isPrimary: true,
       kind: 'primary-rulebook',
       ruleset: ruleset.id,
-      status: 'ready',
+      status: 'uploaded',
     },
   )
 
@@ -251,7 +248,7 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
       isPrimary: false,
       kind: 'supporting-book',
       ruleset: ruleset.id,
-      status: 'ready',
+      status: 'uploaded',
     },
   )
 
