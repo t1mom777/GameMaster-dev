@@ -10,24 +10,68 @@ export default async function SetupPage() {
   const siteSettings = await payload.findGlobal({
     slug: 'site-settings',
   })
+  const runtimeDefaults = await payload.findGlobal({
+    overrideAccess: true,
+    slug: 'runtime-defaults',
+  })
+  const openAiReady = Boolean(process.env.OPENAI_API_KEY)
+  const googleReady = Boolean(process.env.GOOGLE_API_KEY)
+  const deepgramReady = Boolean(process.env.DEEPGRAM_API_KEY)
 
   const providerStatus = [
     {
       detail: 'Embeddings and optional OpenAI runtime features.',
       label: 'OpenAI API',
-      ready: Boolean(process.env.OPENAI_API_KEY),
+      ready: openAiReady,
     },
     {
       detail: 'Gemini runtime calls when Runtime Defaults use Gemini.',
       label: 'Google Gemini API',
-      ready: Boolean(process.env.GOOGLE_API_KEY),
+      ready: googleReady,
     },
     {
       detail: 'Realtime speech-to-text and text-to-speech.',
       label: 'Deepgram API',
-      ready: Boolean(process.env.DEEPGRAM_API_KEY),
+      ready: deepgramReady,
     },
   ]
+  const runtimeProfile = [
+    {
+      label: 'LLM provider',
+      value: runtimeDefaults.llmProvider || 'openai',
+    },
+    {
+      label: 'LLM model',
+      value: runtimeDefaults.llmModel || 'gpt-4.1-mini',
+    },
+    {
+      label: 'STT',
+      value: `${runtimeDefaults.sttProvider || 'deepgram'} / ${runtimeDefaults.sttModel || 'nova-3'}`,
+    },
+    {
+      label: 'TTS',
+      value: `${runtimeDefaults.ttsProvider || 'deepgram'} / ${runtimeDefaults.ttsVoice || runtimeDefaults.ttsModel || 'aura-2'}`,
+    },
+    {
+      label: 'Voice mode',
+      value: runtimeDefaults.voiceMode || 'auto-vad',
+    },
+    {
+      label: 'Retrieval',
+      value: `top ${runtimeDefaults.retrievalTopK || 5}`,
+    },
+  ]
+  const runtimeWarnings = [
+    runtimeDefaults.llmProvider === 'gemini' && !googleReady
+      ? 'Runtime Defaults currently select Gemini, but GOOGLE_API_KEY is missing from the live container.'
+      : null,
+    runtimeDefaults.llmProvider === 'openai' && !openAiReady
+      ? 'Runtime Defaults currently select OpenAI, but OPENAI_API_KEY is missing from the live container.'
+      : null,
+    !deepgramReady
+      ? 'Deepgram is missing, so the GM can still text-fallback but not complete the intended voice loop.'
+      : null,
+  ].filter(Boolean)
 
   const accessPoints = [
     {
@@ -60,6 +104,7 @@ export default async function SetupPage() {
   const manualSteps = [
     'Log into Payload at /t1m0m.',
     'Open Runtime Defaults and confirm the LLM, STT, TTS, and retrieval defaults.',
+    'After changing provider env vars in Coolify, redeploy or restart control-plane and gm-agent so the live containers see them.',
     'Open Site Settings and update the public title, tagline, and description.',
     'Create one Campaign, one World, and one Ruleset.',
     'Upload the primary rulebook and supporting books in Documents.',
@@ -131,6 +176,29 @@ export default async function SetupPage() {
 
       <section className="setup-grid">
         <article className="card">
+          <p className="section-heading__eyebrow">Runtime profile</p>
+          <h2>Current defaults</h2>
+          <div className="runtime-grid runtime-grid--tight">
+            {runtimeProfile.map((entry) => (
+              <div className="runtime-card runtime-card--compact" key={entry.label}>
+                <span>{entry.label}</span>
+                <strong>{entry.value}</strong>
+              </div>
+            ))}
+          </div>
+          {runtimeWarnings.length > 0 && (
+            <div className="alert-card alert-card--inline">
+              <h3>Current blockers</h3>
+              <ul className="setup-list setup-list--bullets">
+                {runtimeWarnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </article>
+
+        <article className="card">
           <p className="section-heading__eyebrow">Manual bootstrap</p>
           <h2>Operator checklist</h2>
           <ol className="setup-list">
@@ -147,6 +215,19 @@ export default async function SetupPage() {
             {operatingChecks.map((check) => (
               <li key={check}>{check}</li>
             ))}
+          </ul>
+        </article>
+
+        <article className="card">
+          <p className="section-heading__eyebrow">Payload collections</p>
+          <h2>Where to edit manually</h2>
+          <ul className="setup-list setup-list--bullets">
+            <li>Campaigns: high-level campaign identity, pitch, and primary ruleset link.</li>
+            <li>Worlds: tone, player promise, and setting-specific framing.</li>
+            <li>Rulesets: the source pack the GM should treat as authoritative.</li>
+            <li>Documents: primary rulebook, supporting books, and reindex requests.</li>
+            <li>Game Sessions: public join toggle, room name, welcome text, and active source list.</li>
+            <li>Runtime Defaults: LLM, STT, TTS, retrieval, and join greeting.</li>
           </ul>
         </article>
       </section>

@@ -33,6 +33,7 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
   if (!session) {
     notFound()
   }
+  const activeSourceCount = Array.isArray(session.activeDocuments) ? session.activeDocuments.length : 0
 
   return (
     <main className="shell shell--session">
@@ -57,6 +58,10 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
                   : 'Active campaign sources'}
               </strong>
             </div>
+            <div>
+              <span>Active sources</span>
+              <strong>{activeSourceCount}</strong>
+            </div>
           </div>
           <div className="session-stage__notes">
             <h2>Before you join</h2>
@@ -64,6 +69,11 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
               <li>Pick a player name you want other room members to see.</li>
               <li>Allow microphone access when the browser asks.</li>
               <li>Use the reset control if you want a fresh token or a clean room reconnect.</li>
+              <li>
+                {activeSourceCount > 0
+                  ? `This session is linked to ${activeSourceCount} source document${activeSourceCount === 1 ? '' : 's'}.`
+                  : 'No active source documents are attached yet, so retrieval will stay empty until the operator adds them.'}
+              </li>
             </ul>
           </div>
         </div>

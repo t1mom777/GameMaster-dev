@@ -10,6 +10,10 @@ export default async function HomePage() {
   const siteSettings = await payload.findGlobal({
     slug: 'site-settings',
   })
+  const runtimeDefaults = await payload.findGlobal({
+    overrideAccess: true,
+    slug: 'runtime-defaults',
+  })
   const providerStatus = [
     {
       detail: 'Required for document embeddings and optional OpenAI runtime usage.',
@@ -27,6 +31,35 @@ export default async function HomePage() {
       ready: Boolean(process.env.DEEPGRAM_API_KEY),
     },
   ]
+  const runtimeProfile = [
+    {
+      label: 'LLM runtime',
+      value: `${runtimeDefaults.llmProvider || 'openai'} / ${runtimeDefaults.llmModel || 'gpt-4.1-mini'}`,
+    },
+    {
+      label: 'Speech in',
+      value: `${runtimeDefaults.sttProvider || 'deepgram'} / ${runtimeDefaults.sttModel || 'nova-3'}`,
+    },
+    {
+      label: 'Speech out',
+      value: `${runtimeDefaults.ttsProvider || 'deepgram'} / ${runtimeDefaults.ttsVoice || runtimeDefaults.ttsModel || 'aura-2'}`,
+    },
+    {
+      label: 'Retrieval',
+      value: `top ${runtimeDefaults.retrievalTopK || 5} chunks`,
+    },
+  ]
+  const operatorAlerts = [
+    runtimeDefaults.llmProvider === 'gemini' && !process.env.GOOGLE_API_KEY
+      ? 'Runtime Defaults still point at Gemini, but GOOGLE_API_KEY is not present in the live container.'
+      : null,
+    runtimeDefaults.llmProvider === 'openai' && !process.env.OPENAI_API_KEY
+      ? 'Runtime Defaults point at OpenAI, but OPENAI_API_KEY is not present in the live container.'
+      : null,
+    !process.env.DEEPGRAM_API_KEY
+      ? 'Deepgram is missing, so live speech input and spoken responses are unavailable.'
+      : null,
+  ].filter(Boolean)
   const sessions = await payload.find({
     collection: 'game-sessions',
     depth: 1,
@@ -186,7 +219,7 @@ export default async function HomePage() {
         <div className="section-heading">
           <div>
             <p className="section-heading__eyebrow">Provider readiness</p>
-            <h2>Runtime keys and admin entry</h2>
+            <h2>Runtime keys, profile, and admin entry</h2>
           </div>
           <p className="section-heading__copy">
             Server-side model calls use API credentials. Browser login sessions are not used as backend runtime auth.
@@ -212,6 +245,27 @@ export default async function HomePage() {
             </Link>
           </article>
         </div>
+
+        <div className="runtime-grid">
+          {runtimeProfile.map((entry) => (
+            <article className="card runtime-card" key={entry.label}>
+              <p className="section-heading__eyebrow">{entry.label}</p>
+              <strong>{entry.value}</strong>
+            </article>
+          ))}
+        </div>
+
+        {operatorAlerts.length > 0 && (
+          <div className="card alert-card">
+            <p className="section-heading__eyebrow">Operator warning</p>
+            <h3>Runtime config still has blockers</h3>
+            <ul className="setup-list setup-list--bullets">
+              {operatorAlerts.map((alert) => (
+                <li key={alert}>{alert}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <section className="sessions" id="sessions">
@@ -248,6 +302,10 @@ export default async function HomePage() {
                 <div>
                   <dt>Join route</dt>
                   <dd>/sessions/{session.slug}</dd>
+                </div>
+                <div>
+                  <dt>Active sources</dt>
+                  <dd>{Array.isArray(session.activeDocuments) ? session.activeDocuments.length : 0}</dd>
                 </div>
               </dl>
               <Link className="button button--primary" href={`/sessions/${session.slug}`}>
