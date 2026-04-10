@@ -263,6 +263,57 @@ async function ensureSchemaRepairs(payload: Payload) {
       ADD COLUMN IF NOT EXISTS provider_connections_id integer
     `,
   })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE documents
+      ADD COLUMN IF NOT EXISTS owner_player_id integer
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE INDEX IF NOT EXISTS documents_owner_player_id_idx
+      ON documents (owner_player_id)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS personal_rulebook_id integer,
+      ADD COLUMN IF NOT EXISTS status varchar(32) DEFAULT 'active',
+      ADD COLUMN IF NOT EXISTS quota_tier varchar(32) DEFAULT 'standard',
+      ADD COLUMN IF NOT EXISTS monthly_session_quota integer DEFAULT 12,
+      ADD COLUMN IF NOT EXISTS monthly_voice_minutes integer DEFAULT 600,
+      ADD COLUMN IF NOT EXISTS can_create_rooms boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS access_notes text
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE INDEX IF NOT EXISTS players_personal_rulebook_id_idx
+      ON players (personal_rulebook_id)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      UPDATE players
+      SET
+        status = COALESCE(status, 'active'),
+        quota_tier = COALESCE(quota_tier, 'standard'),
+        monthly_session_quota = COALESCE(monthly_session_quota, 12),
+        monthly_voice_minutes = COALESCE(monthly_voice_minutes, 600),
+        can_create_rooms = COALESCE(can_create_rooms, false)
+    `,
+  })
 }
 
 function getSeedMimeType(filePath: string): string {
