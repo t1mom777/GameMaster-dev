@@ -15,7 +15,12 @@ export async function GET(request: NextRequest) {
   const returnTo = sanitizeReturnTo(request.nextUrl.searchParams.get('returnTo'))
 
   if (!isGooglePlayerAuthConfigured()) {
-    return NextResponse.redirect(toPublicUrl('/setup', request.headers))
+    const destination = new URL(toPublicUrl('/login', request.headers))
+    destination.searchParams.set('auth', 'google-failed')
+    if (returnTo !== '/') {
+      destination.searchParams.set('returnTo', returnTo)
+    }
+    return NextResponse.redirect(destination)
   }
 
   const { cookieValue, url } = buildGoogleAuthUrl(returnTo)

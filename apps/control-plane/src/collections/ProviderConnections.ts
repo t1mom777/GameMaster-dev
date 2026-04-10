@@ -13,6 +13,7 @@ export const ProviderConnections: CollectionConfig = {
   },
   admin: {
     defaultColumns: ['label', 'provider', 'enabled', 'updatedAt'],
+    group: 'Runtime',
     useAsTitle: 'label',
   },
   fields: [

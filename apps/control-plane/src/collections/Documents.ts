@@ -16,7 +16,8 @@ export const Documents: CollectionConfig = {
     update: ({ req }) => hasAdminSession(req),
   },
   admin: {
-    defaultColumns: ['title', 'kind', 'status', 'ruleset', 'updatedAt'],
+    defaultColumns: ['title', 'kind', 'status', 'ownerPlayer', 'ruleset', 'updatedAt'],
+    group: 'Story',
     useAsTitle: 'title',
   },
   fields: [
@@ -83,6 +84,14 @@ export const Documents: CollectionConfig = {
     {
       name: 'session',
       relationTo: 'game-sessions',
+      type: 'relationship',
+    },
+    {
+      admin: {
+        description: 'When set, this document is owned by a player and can be managed from the player app.',
+      },
+      name: 'ownerPlayer',
+      relationTo: 'players',
       type: 'relationship',
     },
     {

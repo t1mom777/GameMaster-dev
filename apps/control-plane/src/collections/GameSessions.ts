@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Where } from 'payload'
 
 import { hasAdminSession } from '@/lib/access'
 import { toSlug } from '@/lib/slug'
@@ -13,16 +13,28 @@ export const GameSessions: CollectionConfig = {
         return true
       }
 
-      return {
-        publicJoinEnabled: {
-          equals: true,
-        },
+      const publicReadFilter: Where = {
+        and: [
+          {
+            publicJoinEnabled: {
+              equals: true,
+            },
+          },
+          {
+            allowGuests: {
+              equals: true,
+            },
+          },
+        ],
       }
+
+      return publicReadFilter
     },
     update: ({ req }) => hasAdminSession(req),
   },
   admin: {
-    defaultColumns: ['title', 'status', 'roomName', 'scheduledFor'],
+    defaultColumns: ['title', 'status', 'roomName', 'publicJoinEnabled', 'allowGuests', 'scheduledFor'],
+    group: 'Play',
     useAsTitle: 'title',
   },
   fields: [
@@ -77,12 +89,20 @@ export const GameSessions: CollectionConfig = {
       unique: true,
     },
     {
+      admin: {
+        description: 'When enabled, the room can appear in the player app and accept sign-ins.',
+      },
       defaultValue: true,
+      label: 'Open to any signed-in player',
       name: 'allowGuests',
       type: 'checkbox',
     },
     {
+      admin: {
+        description: 'When disabled, the room is hidden from the player app and public join flow.',
+      },
       defaultValue: true,
+      label: 'Visible in the player app',
       name: 'publicJoinEnabled',
       type: 'checkbox',
     },
@@ -103,6 +123,17 @@ export const GameSessions: CollectionConfig = {
     {
       name: 'ruleset',
       relationTo: 'rulesets',
+      type: 'relationship',
+    },
+    {
+      admin: {
+        condition: (_, siblingData) => siblingData?.allowGuests === false,
+        description:
+          'Only these signed-in players can see and enter the room when the room is not open to all players.',
+      },
+      hasMany: true,
+      name: 'allowedPlayers',
+      relationTo: 'players',
       type: 'relationship',
     },
     {

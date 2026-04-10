@@ -13,6 +13,7 @@ export const Campaigns: CollectionConfig = {
   },
   admin: {
     defaultColumns: ['title', 'slug', 'updatedAt'],
+    group: 'Story',
     useAsTitle: 'title',
   },
   fields: [

@@ -1,13 +1,13 @@
 # GameMaster
 
-Payload-backed Game Master control plane with a simple player frontend, a separate LiveKit Agents runtime, Qdrant retrieval, and PostgreSQL as the system of record.
+GameMaster is the migration stack for `game.dima.click`, with a public player app separated cleanly from a hidden admin control plane at `/t1m0m`.
 
-The old GM app remains the reference system. This repo is the migration target for the new stack on `game.dima.click`.
+The old GM app remains the protected reference system and is not part of this rollout.
 
 ## Services
 
 - `apps/control-plane`
-  Payload CMS + Next.js public frontend
+  Payload CMS + the public player-facing Next.js app
 - `services/gm-agent`
   Python LiveKit Agents worker
 - `postgres`
@@ -16,6 +16,15 @@ The old GM app remains the reference system. This repo is the migration target f
   rulebook and supplement vector retrieval
 - `livekit`
   realtime media transport for preview and migration validation
+
+## What Changed
+
+- Public player routes are now limited to ` / `, ` /login `, ` /rooms `, ` /join `, and ` /session/[slug]`.
+- Google SSO is the required path before a player can join a room.
+- Admin access is hidden under `https://game.dima.click/t1m0m` and is no longer linked from the public UI.
+- Speaker labeling is now part of the player room flow when multiple human voices are present.
+- Signed-in players can upload and replace one personal rulebook from the player app, and that rulebook follows them into joined rooms.
+- Payload admin remains the place for campaigns, worlds, rulebooks, sessions, quotas, runtime defaults, and diagnostics.
 
 ## Docs
 

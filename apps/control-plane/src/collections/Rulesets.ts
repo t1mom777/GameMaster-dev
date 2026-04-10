@@ -13,6 +13,7 @@ export const Rulesets: CollectionConfig = {
   },
   admin: {
     defaultColumns: ['title', 'slug', 'campaign'],
+    group: 'Story',
     useAsTitle: 'title',
   },
   fields: [

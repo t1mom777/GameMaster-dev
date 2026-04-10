@@ -13,6 +13,7 @@ export const Worlds: CollectionConfig = {
   },
   admin: {
     defaultColumns: ['title', 'slug', 'campaign'],
+    group: 'Story',
     useAsTitle: 'title',
   },
   fields: [

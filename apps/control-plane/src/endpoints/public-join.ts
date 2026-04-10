@@ -2,6 +2,12 @@ import type { Endpoint } from 'payload'
 import { z } from 'zod'
 
 import { createPlayerToken, ensureRoom, getLiveKitPublicUrl } from '@/lib/livekit'
+import {
+  loadAuthenticatedPlayer,
+  loadJoinableSessionBySlug,
+  loadPlayerRulebook,
+  relationshipId,
+} from '@/lib/player-access'
 import { readPlayerSessionFromHeaders } from '@/lib/player-auth'
 import { toSlug } from '@/lib/slug'
 
@@ -15,26 +21,6 @@ type JoinPlayerRecord = {
   id: number | string
 }
 
-function toJoinPlayerRecord(input: unknown): JoinPlayerRecord | undefined {
-  if (!input || typeof input !== 'object') {
-    return undefined
-  }
-
-  const candidate = input as { displayName?: unknown; id?: unknown }
-  if (typeof candidate.displayName !== 'string') {
-    return undefined
-  }
-
-  if (typeof candidate.id !== 'number' && typeof candidate.id !== 'string') {
-    return undefined
-  }
-
-  return {
-    displayName: candidate.displayName,
-    id: candidate.id,
-  }
-}
-
 function normalizeCollectionId(input: number | string): number | string {
   if (typeof input === 'number') {
     return input
@@ -43,104 +29,128 @@ function normalizeCollectionId(input: number | string): number | string {
   return /^\d+$/.test(input) ? Number(input) : input
 }
 
+function toJoinPlayerRecord(input: unknown): JoinPlayerRecord | null {
+  if (!input || typeof input !== 'object') {
+    return null
+  }
+
+  const candidate = input as { displayName?: unknown; id?: unknown }
+  if (typeof candidate.displayName !== 'string') {
+    return null
+  }
+
+  if (typeof candidate.id !== 'number' && typeof candidate.id !== 'string') {
+    return null
+  }
+
+  return {
+    displayName: candidate.displayName,
+    id: candidate.id,
+  }
+}
+
 export const publicJoinEndpoint: Endpoint = {
   handler: async (req) => {
-    const body = req.json ? await req.json() : {}
-    const data = joinSchema.parse(body)
-    const authenticatedPlayer = readPlayerSessionFromHeaders(req.headers)
-    const playerName = data.playerName?.trim() || authenticatedPlayer?.displayName || ''
-
-    if (playerName.length < 2) {
+    const authSession = readPlayerSessionFromHeaders(req.headers)
+    if (!authSession) {
       return Response.json(
         {
-          error: 'player_name_required',
-          message: 'A player name or Google sign-in is required before joining.',
+          error: 'player_sign_in_required',
+          message: 'Sign in with Google before joining a room.',
         },
-        { status: 400 },
+        { status: 401 },
       )
     }
 
-    const sessions = await req.payload.find({
-      collection: 'game-sessions',
-      depth: 0,
-      limit: 1,
-      where: {
-        and: [
-          {
-            slug: {
-              equals: data.sessionSlug,
-            },
-          },
-          {
-            publicJoinEnabled: {
-              equals: true,
-            },
-          },
-        ],
-      },
-    })
+    const body = req.json ? await req.json() : {}
+    const data = joinSchema.parse(body)
+    const player = await loadAuthenticatedPlayer(req.payload, authSession)
 
-    const session = sessions.docs[0]
+    if (!player || player.status === 'suspended') {
+      return Response.json(
+        {
+          error: 'player_access_denied',
+          message: 'This player account cannot join rooms right now.',
+        },
+        { status: 403 },
+      )
+    }
+
+    const session = await loadJoinableSessionBySlug(req.payload, data.sessionSlug, player)
     if (!session) {
       return Response.json(
         {
-          error: 'session_not_found',
-          message: 'The requested session is not available for public join.',
+          error: 'session_access_denied',
+          message: 'The requested room is not available for this player.',
         },
         { status: 404 },
       )
     }
 
-    let player: JoinPlayerRecord | undefined
+    const playerName = data.playerName?.trim() || player.displayName || authSession.displayName
 
-    if (authenticatedPlayer?.playerId) {
-      try {
-        player = toJoinPlayerRecord(
-          (await req.payload.update({
-            collection: 'players',
-            data: {
-              authProvider: 'google',
-              avatarUrl: authenticatedPlayer.avatarUrl || undefined,
-              displayName: playerName,
-              email: authenticatedPlayer.email,
-            googleSub: authenticatedPlayer.googleSub,
-            lastRoomName: session.roomName,
-            lastSeenAt: new Date().toISOString(),
-          },
-          id: normalizeCollectionId(authenticatedPlayer.playerId),
-          overrideAccess: true,
-        } as never)) as unknown,
+    if (!playerName || playerName.length < 2) {
+      return Response.json(
+        {
+          error: 'player_name_required',
+          message: 'A player display name is required before joining.',
+        },
+        { status: 400 },
       )
-      } catch {
-        player = undefined
-      }
     }
 
-    if (!player) {
-      player = toJoinPlayerRecord(
-        (await req.payload.create({
-          collection: 'players',
+    const persistedPlayer = toJoinPlayerRecord(
+      (await req.payload.update({
+        collection: 'players',
+        data: {
+          avatarUrl: authSession.avatarUrl || undefined,
+          displayName: playerName,
+          email: authSession.email,
+          googleSub: authSession.googleSub,
+          lastRoomName: session.roomName,
+          lastSeenAt: new Date().toISOString(),
+        },
+        id: normalizeCollectionId(player.id),
+        overrideAccess: true,
+      } as never)) as unknown,
+    )
+
+    if (!persistedPlayer) {
+      return Response.json(
+        {
+          error: 'player_update_failed',
+          message: 'The player profile could not be prepared for room entry.',
+        },
+        { status: 500 },
+      )
+    }
+
+    const personalRulebook = await loadPlayerRulebook(req.payload, {
+      ...player,
+      personalRulebookId: player.personalRulebookId,
+    })
+
+    if (personalRulebook) {
+      const activeDocumentIds = (Array.isArray(session.activeDocuments) ? session.activeDocuments : [])
+        .map((entry) => relationshipId(entry as { id?: number | string } | number | string | null))
+        .filter((entry): entry is string => Boolean(entry))
+      const personalRulebookId = String(personalRulebook.id)
+
+      if (!activeDocumentIds.includes(personalRulebookId)) {
+        await req.payload.update({
+          collection: 'game-sessions',
           data: {
-            authProvider: authenticatedPlayer ? 'google' : 'guest',
-            avatarUrl: authenticatedPlayer?.avatarUrl || undefined,
-            displayName: playerName,
-            email: authenticatedPlayer?.email || undefined,
-            googleSub: authenticatedPlayer?.googleSub || undefined,
-            lastRoomName: session.roomName,
-            lastSeenAt: new Date().toISOString(),
+            activeDocuments: [...activeDocumentIds, personalRulebook.id],
           },
+          id: session.id,
           overrideAccess: true,
-        } as never)) as unknown,
-      )
-    }
-
-    if (!player) {
-      throw new Error('Player record could not be created for public join.')
+        } as never)
+      }
     }
 
     await ensureRoom(session.roomName, 8)
 
-    const identity = `player-${toSlug(playerName, 'guest')}-${String(player.id).slice(0, 8)}`
+    const identity = `player-${toSlug(playerName, 'player')}-${String(persistedPlayer.id).slice(0, 8)}`
     const token = await createPlayerToken({
       identity,
       name: playerName,
@@ -148,11 +158,18 @@ export const publicJoinEndpoint: Endpoint = {
     })
 
     return Response.json({
-      authenticated: Boolean(authenticatedPlayer),
+      authenticated: true,
       player: {
-        displayName: player.displayName,
-        id: String(player.id),
+        displayName: persistedPlayer.displayName,
+        id: String(persistedPlayer.id),
       },
+      playerRulebook:
+        personalRulebook && personalRulebook.status
+          ? {
+              status: personalRulebook.status,
+              title: personalRulebook.title,
+            }
+          : null,
       roomName: session.roomName,
       serverUrl: getLiveKitPublicUrl(),
       session: {

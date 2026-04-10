@@ -9,6 +9,7 @@ import { Admins } from './collections/Admins'
 import { Campaigns } from './collections/Campaigns'
 import { Documents } from './collections/Documents'
 import { GameSessions } from './collections/GameSessions'
+import { PlayerMappings } from './collections/PlayerMappings'
 import { Players } from './collections/Players'
 import { ProviderConnections } from './collections/ProviderConnections'
 import { Rulesets } from './collections/Rulesets'
@@ -17,6 +18,15 @@ import { adminReindexDocumentEndpoint } from './endpoints/admin-reindex-document
 import { healthEndpoint } from './endpoints/health'
 import { internalBootstrapEndpoint } from './endpoints/internal-bootstrap'
 import { publicJoinEndpoint } from './endpoints/public-join'
+import {
+  publicPlayerMappingsGetEndpoint,
+  publicPlayerMappingsSaveEndpoint,
+} from './endpoints/public-player-mappings'
+import {
+  publicPlayerRulebookDeleteEndpoint,
+  publicPlayerRulebookGetEndpoint,
+  publicPlayerRulebookSaveEndpoint,
+} from './endpoints/public-player-rulebook'
 import { publicSessionsEndpoint } from './endpoints/public-sessions'
 import { runtimeRetrieveEndpoint } from './endpoints/runtime-retrieve'
 import { runtimeSessionEndpoint } from './endpoints/runtime-session'
@@ -36,6 +46,7 @@ export default buildConfig({
   collections: [
     Admins,
     Players,
+    PlayerMappings,
     Campaigns,
     Worlds,
     Rulesets,
@@ -48,6 +59,11 @@ export default buildConfig({
     healthEndpoint,
     publicSessionsEndpoint,
     publicJoinEndpoint,
+    publicPlayerMappingsGetEndpoint,
+    publicPlayerMappingsSaveEndpoint,
+    publicPlayerRulebookGetEndpoint,
+    publicPlayerRulebookSaveEndpoint,
+    publicPlayerRulebookDeleteEndpoint,
     internalBootstrapEndpoint,
     runtimeSessionEndpoint,
     runtimeRetrieveEndpoint,

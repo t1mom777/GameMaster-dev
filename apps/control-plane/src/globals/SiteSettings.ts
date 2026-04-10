@@ -19,12 +19,12 @@ export const SiteSettings: GlobalConfig = {
       type: 'text',
     },
     {
-      defaultValue: 'Voice-first tabletop sessions with admin-grade campaign control.',
+      defaultValue: 'A voice-first tabletop app that gets players from sign-in to scene without interface clutter.',
       name: 'tagline',
       type: 'textarea',
     },
     {
-      defaultValue: 'Join a room, speak naturally, and let the GM keep the world coherent through active rulebooks and scene memory.',
+      defaultValue: 'Join a room, speak naturally, and keep the story moving through clean voice play and active books.',
       name: 'publicDescription',
       type: 'textarea',
     },

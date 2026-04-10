@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     admins: Admin;
     players: Player;
+    'player-mappings': PlayerMapping;
     campaigns: Campaign;
     worlds: World;
     rulesets: Ruleset;
@@ -84,6 +85,7 @@ export interface Config {
   collectionsSelect: {
     admins: AdminsSelect<false> | AdminsSelect<true>;
     players: PlayersSelect<false> | PlayersSelect<true>;
+    'player-mappings': PlayerMappingsSelect<false> | PlayerMappingsSelect<true>;
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
     worlds: WorldsSelect<false> | WorldsSelect<true>;
     rulesets: RulesetsSelect<false> | RulesetsSelect<true>;
@@ -173,9 +175,77 @@ export interface Player {
   email?: string | null;
   googleSub?: string | null;
   avatarUrl?: string | null;
+  /**
+   * Optional personal reference book that follows this player into the rooms they join.
+   */
+  personalRulebook?: (number | null) | Document;
+  status: 'active' | 'suspended';
+  quotaTier: 'standard' | 'priority' | 'internal';
+  /**
+   * Soft quota metadata for operator planning.
+   */
+  monthlySessionQuota?: number | null;
+  /**
+   * Soft quota metadata for voice usage planning.
+   */
+  monthlyVoiceMinutes?: number | null;
+  canCreateRooms?: boolean | null;
+  accessNotes?: string | null;
   preferredVoiceMode?: ('auto-vad' | 'push-to-talk' | 'text-only') | null;
   lastSeenAt?: string | null;
   lastRoomName?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: number;
+  title: string;
+  slug: string;
+  kind: 'primary-rulebook' | 'supporting-book' | 'lore-pack';
+  status: 'uploaded' | 'indexing' | 'ready' | 'error';
+  isActive?: boolean | null;
+  isPrimary?: boolean | null;
+  ruleset?: (number | null) | Ruleset;
+  session?: (number | null) | GameSession;
+  /**
+   * When set, this document is owned by a player and can be managed from the player app.
+   */
+  ownerPlayer?: (number | null) | Player;
+  /**
+   * Check and save when you need a full re-index.
+   */
+  reindexRequested?: boolean | null;
+  chunkCount?: number | null;
+  lastIngestedAt?: string | null;
+  ingestError?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rulesets".
+ */
+export interface Ruleset {
+  id: number;
+  title: string;
+  slug: string;
+  campaign?: (number | null) | Campaign;
+  summary?: string | null;
+  primaryRulebook?: (number | null) | Document;
+  supportingBooks?: (number | Document)[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -200,54 +270,6 @@ export interface Campaign {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "rulesets".
- */
-export interface Ruleset {
-  id: number;
-  title: string;
-  slug: string;
-  campaign?: (number | null) | Campaign;
-  summary?: string | null;
-  primaryRulebook?: (number | null) | Document;
-  supportingBooks?: (number | Document)[] | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents".
- */
-export interface Document {
-  id: number;
-  title: string;
-  slug: string;
-  kind: 'primary-rulebook' | 'supporting-book' | 'lore-pack';
-  status: 'uploaded' | 'indexing' | 'ready' | 'error';
-  isActive?: boolean | null;
-  isPrimary?: boolean | null;
-  ruleset?: (number | null) | Ruleset;
-  session?: (number | null) | GameSession;
-  /**
-   * Check and save when you need a full re-index.
-   */
-  reindexRequested?: boolean | null;
-  chunkCount?: number | null;
-  lastIngestedAt?: string | null;
-  ingestError?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "game-sessions".
  */
 export interface GameSession {
@@ -256,12 +278,22 @@ export interface GameSession {
   slug: string;
   status: 'scheduled' | 'live' | 'ended';
   roomName: string;
+  /**
+   * When enabled, the room can appear in the player app and accept sign-ins.
+   */
   allowGuests?: boolean | null;
+  /**
+   * When disabled, the room is hidden from the player app and public join flow.
+   */
   publicJoinEnabled?: boolean | null;
   scheduledFor?: string | null;
   campaign?: (number | null) | Campaign;
   world?: (number | null) | World;
   ruleset?: (number | null) | Ruleset;
+  /**
+   * Only these signed-in players can see and enter the room when the room is not open to all players.
+   */
+  allowedPlayers?: (number | Player)[] | null;
   activeDocuments?: (number | Document)[] | null;
   publicSummary?: string | null;
   welcomeText?: string | null;
@@ -279,6 +311,24 @@ export interface World {
   campaign?: (number | null) | Campaign;
   tone?: string | null;
   playerPromise?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "player-mappings".
+ */
+export interface PlayerMapping {
+  id: number;
+  mappingKey: string;
+  session: number | GameSession;
+  livekitIdentity: string;
+  participantLabel: string;
+  mappedName: string;
+  isConfirmed?: boolean | null;
+  confirmedBy?: (number | null) | Player;
+  speakingNotes?: string | null;
+  lastConfirmedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -330,6 +380,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'players';
         value: number | Player;
+      } | null)
+    | ({
+        relationTo: 'player-mappings';
+        value: number | PlayerMapping;
       } | null)
     | ({
         relationTo: 'campaigns';
@@ -431,9 +485,33 @@ export interface PlayersSelect<T extends boolean = true> {
   email?: T;
   googleSub?: T;
   avatarUrl?: T;
+  personalRulebook?: T;
+  status?: T;
+  quotaTier?: T;
+  monthlySessionQuota?: T;
+  monthlyVoiceMinutes?: T;
+  canCreateRooms?: T;
+  accessNotes?: T;
   preferredVoiceMode?: T;
   lastSeenAt?: T;
   lastRoomName?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "player-mappings_select".
+ */
+export interface PlayerMappingsSelect<T extends boolean = true> {
+  mappingKey?: T;
+  session?: T;
+  livekitIdentity?: T;
+  participantLabel?: T;
+  mappedName?: T;
+  isConfirmed?: T;
+  confirmedBy?: T;
+  speakingNotes?: T;
+  lastConfirmedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -495,6 +573,7 @@ export interface DocumentsSelect<T extends boolean = true> {
   isPrimary?: T;
   ruleset?: T;
   session?: T;
+  ownerPlayer?: T;
   reindexRequested?: T;
   chunkCount?: T;
   lastIngestedAt?: T;
@@ -526,6 +605,7 @@ export interface GameSessionsSelect<T extends boolean = true> {
   campaign?: T;
   world?: T;
   ruleset?: T;
+  allowedPlayers?: T;
   activeDocuments?: T;
   publicSummary?: T;
   welcomeText?: T;

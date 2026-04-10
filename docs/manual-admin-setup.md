@@ -3,8 +3,9 @@
 ## Access points
 
 - Public app: `https://game.dima.click`
-- Public setup guide: `https://game.dima.click/setup`
-- Public session page pattern: `https://game.dima.click/sessions/<session-slug>`
+- Player sign-in: `https://game.dima.click/login`
+- Player rooms: `https://game.dima.click/rooms`
+- Player session page pattern: `https://game.dima.click/session/<session-slug>`
 - Payload admin: `https://game.dima.click/t1m0m`
 - Control-plane health: `https://game.dima.click/api/gm/health`
 - Public session listing: `https://game.dima.click/api/gm/public/sessions`
@@ -25,40 +26,33 @@ Use the Payload admin for:
 
 The migration stack is intentionally built so advanced admin behavior stays inside Payload instead of a second custom admin frontend.
 
-## Browser-side troubleshooting
-
-If the public site renders as plain text or the admin route looks blank:
-
-1. Hard refresh the page.
-2. Confirm `/_next/static/...` assets return `200`.
-3. Confirm the latest control-plane deployment finished cleanly.
-4. Re-open `https://game.dima.click/setup` and check provider readiness there.
-
 ## Manual first-pass setup
 
 1. Log into `https://game.dima.click/t1m0m`.
-2. Open `Runtime Defaults`.
-3. Confirm the provider defaults you want:
+2. Open `Players` and confirm the Google-signed-in player records look correct.
+3. Open `Runtime Defaults`.
+4. Confirm the provider defaults you want:
    - LLM provider/model
    - STT provider/model
    - TTS provider/model/voice
    - retrieval top-k
-4. Open `Site Settings` and set public copy.
-5. Create one `Campaign`.
-6. Create one `World` linked to that campaign.
-7. Create one `Ruleset` linked to that campaign.
-8. Upload documents in `Documents`.
-9. Mark the primary rulebook with `kind=primary-rulebook` and `isPrimary=true`.
-10. Create one `Game Session`.
-11. Set:
+5. Open `Site Settings` and set player-facing public copy.
+6. Create one `Campaign`.
+7. Create one `World` linked to that campaign.
+8. Create one `Ruleset` linked to that campaign.
+9. Upload documents in `Documents`.
+10. Mark the primary rulebook with `kind=primary-rulebook` and `isPrimary=true`.
+11. Create one `Game Session`.
+12. Set:
     - `campaign`
     - `world`
     - `ruleset`
     - `status=live` or `scheduled`
     - `publicJoinEnabled=true`
-    - `allowGuests=true`
+    - `allowGuests=true` if any signed-in player can join
+    - `allowGuests=false` and `allowedPlayers=[...]` for a restricted room
     - `roomName`
-12. Save the session and verify it appears on the public homepage.
+13. Save the session and verify it appears in the player app for the intended user.
 
 ## Documents and retrieval
 
@@ -92,6 +86,24 @@ Optional but recommended:
 - `welcomeText`
 - `scheduledFor`
 - `activeDocuments`
+- `allowedPlayers` when the room is restricted
+
+## Player-owned rulebooks
+
+Signed-in players can now manage one personal rulebook from the player app itself.
+
+How it works:
+
+1. The player signs in at `https://game.dima.click/login`.
+2. The player opens `https://game.dima.click/rooms`.
+3. The player uploads or replaces a personal rulebook.
+4. When that player joins any room, their personal rulebook is attached to the room context automatically.
+
+Admin visibility:
+
+- The uploaded file appears in `Documents`.
+- The document is linked back to the player through `ownerPlayer`.
+- The player record keeps the current reference in `personalRulebook`.
 
 ## Provider setup
 
@@ -108,7 +120,7 @@ Required in Coolify for a full voice stack:
 
 ## Google player sign-in
 
-Homepage Google sign-in is a separate public auth feature for players. It does not replace admin auth at `/t1m0m` and it does not replace the Gemini API key.
+Homepage Google sign-in is the required public auth path for players. It does not replace admin auth at `/t1m0m` and it does not replace the Gemini API key.
 
 Required in Coolify for public Google login:
 
@@ -126,10 +138,11 @@ Google Cloud console setup:
 Player flow:
 
 1. Open `https://game.dima.click`.
-2. Click `Continue with Google`.
+2. Click `Sign in with Google`.
 3. Complete Google consent.
-4. Return to the homepage signed in.
-5. Open a session page and join; the player name prefills from the Google session.
+4. Return to the player app signed in.
+5. Open `https://game.dima.click/rooms`.
+6. Pick a room, check the microphone, confirm player labels if needed, and enter the session.
 
 ## Important auth limitation
 
@@ -155,6 +168,15 @@ After manual setup, verify:
    - LiveKit URL
    - token
 5. `rtc.game.dima.click` is reachable.
+
+## Browser-side troubleshooting
+
+If the public site renders as raw HTML or the admin route looks blank:
+
+1. Hard refresh the page.
+2. Confirm `/_next/static/...` assets return `200`.
+3. Confirm the latest control-plane deployment finished cleanly.
+4. Re-open `https://game.dima.click/login` and `https://game.dima.click/t1m0m`.
 
 ## Current production caveats
 
