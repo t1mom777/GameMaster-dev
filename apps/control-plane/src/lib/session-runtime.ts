@@ -21,6 +21,7 @@ function relationId(input: { id?: string | number } | string | number | null | u
 
 export async function loadRuntimeContext(payload: Payload, session: SessionRecord) {
   const runtimeDefaults = await payload.findGlobal({
+    overrideAccess: true,
     slug: 'runtime-defaults',
   })
 
@@ -35,6 +36,7 @@ export async function loadRuntimeContext(payload: Payload, session: SessionRecor
       collection: 'documents',
       depth: 0,
       limit: 50,
+      overrideAccess: true,
       pagination: false,
       where: {
         and: [

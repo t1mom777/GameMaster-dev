@@ -22,8 +22,9 @@ export const runtimeRetrieveEndpoint: Endpoint = {
     const data = retrieveSchema.parse(body)
     const sessions = await req.payload.find({
       collection: 'game-sessions',
-      depth: 1,
+      depth: 0,
       limit: 1,
+      overrideAccess: true,
       where: {
         roomName: {
           equals: data.roomName,

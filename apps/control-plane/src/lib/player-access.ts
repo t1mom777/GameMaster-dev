@@ -239,7 +239,7 @@ export async function findJoinableSessionsForPlayer(
 ): Promise<SessionRecord[]> {
   const result = await payload.find({
     collection: 'game-sessions',
-    depth: 1,
+    depth: 0,
     limit,
     overrideAccess: true,
     pagination: false,
@@ -281,7 +281,7 @@ export function isSessionPubliclyListed(session: SessionRecord | null | undefine
 export async function listPublicSessions(payload: Payload, limit = 12): Promise<SessionRecord[]> {
   const result = await payload.find({
     collection: 'game-sessions',
-    depth: 1,
+    depth: 0,
     limit,
     overrideAccess: true,
     pagination: false,
@@ -319,7 +319,7 @@ export async function loadJoinableSessionBySlug(
 ): Promise<SessionRecord | null> {
   const result = await payload.find({
     collection: 'game-sessions',
-    depth: 1,
+    depth: 0,
     limit: 1,
     overrideAccess: true,
     pagination: false,

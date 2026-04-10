@@ -23,8 +23,9 @@ export const runtimeSessionEndpoint: Endpoint = {
 
     const result = await req.payload.find({
       collection: 'game-sessions',
-      depth: 1,
+      depth: 0,
       limit: 1,
+      overrideAccess: true,
       where: {
         roomName: {
           equals: roomName,
