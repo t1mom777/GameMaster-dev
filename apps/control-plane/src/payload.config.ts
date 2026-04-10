@@ -17,7 +17,6 @@ import { Worlds } from './collections/Worlds'
 import { adminReindexDocumentEndpoint } from './endpoints/admin-reindex-document'
 import { healthEndpoint } from './endpoints/health'
 import { internalBootstrapEndpoint } from './endpoints/internal-bootstrap'
-import { internalDebugPublicSessionsEndpoint } from './endpoints/internal-debug-public-sessions'
 import { publicJoinEndpoint } from './endpoints/public-join'
 import {
   publicPlayerMappingsGetEndpoint,
@@ -66,7 +65,6 @@ export default buildConfig({
     publicPlayerRulebookSaveEndpoint,
     publicPlayerRulebookDeleteEndpoint,
     internalBootstrapEndpoint,
-    internalDebugPublicSessionsEndpoint,
     runtimeSessionEndpoint,
     runtimeRetrieveEndpoint,
     adminReindexDocumentEndpoint,
