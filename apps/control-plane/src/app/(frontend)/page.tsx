@@ -2,7 +2,11 @@ import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getPayload } from 'payload'
 
-import { findJoinableSessionsForPlayer, loadAuthenticatedPlayer } from '@/lib/player-access'
+import {
+  findJoinableSessionsForPlayer,
+  listPublicSessions,
+  loadAuthenticatedPlayer,
+} from '@/lib/player-access'
 import { isGooglePlayerAuthConfigured, readPlayerSessionFromCookieStore } from '@/lib/player-auth'
 import config from '@/payload.config'
 
@@ -19,45 +23,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
 
   const featuredSessions = playerRecord
     ? await findJoinableSessionsForPlayer(payload, playerRecord, 3)
-    : (
-        await payload.find({
-          collection: 'game-sessions',
-          depth: 1,
-          limit: 3,
-          pagination: false,
-          where: {
-            and: [
-              {
-                allowGuests: {
-                  equals: true,
-                },
-              },
-              {
-                publicJoinEnabled: {
-                  equals: true,
-                },
-              },
-              {
-                status: {
-                  in: ['scheduled', 'live'],
-                },
-              },
-            ],
-          },
-        })
-      ).docs.map((session) => ({
-        allowGuests: session.allowGuests,
-        id: session.id,
-        publicJoinEnabled: session.publicJoinEnabled,
-        publicSummary: session.publicSummary,
-        roomName: session.roomName,
-        ruleset: session.ruleset,
-        scheduledFor: session.scheduledFor,
-        slug: session.slug,
-        status: session.status,
-        title: session.title,
-        welcomeText: session.welcomeText,
-      }))
+    : await listPublicSessions(payload, 3)
 
   const authNotice =
     searchParams?.auth === 'google-state'

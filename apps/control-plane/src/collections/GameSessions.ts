@@ -1,4 +1,4 @@
-import type { CollectionConfig, Where } from 'payload'
+import type { CollectionConfig } from 'payload'
 
 import { hasAdminSession } from '@/lib/access'
 import { toSlug } from '@/lib/slug'
@@ -8,28 +8,7 @@ export const GameSessions: CollectionConfig = {
   access: {
     create: ({ req }) => hasAdminSession(req),
     delete: ({ req }) => hasAdminSession(req),
-    read: ({ req }) => {
-      if (hasAdminSession(req)) {
-        return true
-      }
-
-      const publicReadFilter: Where = {
-        and: [
-          {
-            publicJoinEnabled: {
-              equals: true,
-            },
-          },
-          {
-            allowGuests: {
-              equals: true,
-            },
-          },
-        ],
-      }
-
-      return publicReadFilter
-    },
+    read: ({ req }) => hasAdminSession(req),
     update: ({ req }) => hasAdminSession(req),
   },
   admin: {

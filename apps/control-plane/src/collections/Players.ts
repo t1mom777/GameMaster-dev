@@ -5,7 +5,7 @@ import { hasAdminSession } from '@/lib/access'
 export const Players: CollectionConfig = {
   slug: 'players',
   access: {
-    create: () => true,
+    create: ({ req }) => hasAdminSession(req),
     delete: ({ req }) => hasAdminSession(req),
     read: ({ req }) => hasAdminSession(req),
     update: ({ req }) => hasAdminSession(req),

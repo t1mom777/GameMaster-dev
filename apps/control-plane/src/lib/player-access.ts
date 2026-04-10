@@ -262,6 +262,56 @@ export async function findJoinableSessionsForPlayer(
   return result.docs.map((doc) => toSessionRecord(doc)).filter((doc): doc is SessionRecord => Boolean(doc)).filter((doc) => sessionAllowsPlayer(doc, player))
 }
 
+export function isSessionPubliclyListed(session: SessionRecord | null | undefined): boolean {
+  if (!session) {
+    return false
+  }
+
+  if (!session.publicJoinEnabled) {
+    return false
+  }
+
+  if (session.allowGuests === false) {
+    return false
+  }
+
+  return ['scheduled', 'live'].includes(session.status)
+}
+
+export async function listPublicSessions(payload: Payload, limit = 12): Promise<SessionRecord[]> {
+  const result = await payload.find({
+    collection: 'game-sessions',
+    depth: 1,
+    limit,
+    overrideAccess: true,
+    pagination: false,
+    where: {
+      and: [
+        {
+          publicJoinEnabled: {
+            equals: true,
+          },
+        },
+        {
+          allowGuests: {
+            equals: true,
+          },
+        },
+        {
+          status: {
+            in: ['scheduled', 'live'],
+          },
+        },
+      ],
+    },
+  })
+
+  return result.docs
+    .map((doc) => toSessionRecord(doc))
+    .filter((doc): doc is SessionRecord => Boolean(doc))
+    .filter((doc) => isSessionPubliclyListed(doc))
+}
+
 export async function loadJoinableSessionBySlug(
   payload: Payload,
   slug: string,

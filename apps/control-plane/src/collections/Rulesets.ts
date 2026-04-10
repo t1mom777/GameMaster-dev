@@ -8,7 +8,7 @@ export const Rulesets: CollectionConfig = {
   access: {
     create: ({ req }) => hasAdminSession(req),
     delete: ({ req }) => hasAdminSession(req),
-    read: () => true,
+    read: ({ req }) => hasAdminSession(req),
     update: ({ req }) => hasAdminSession(req),
   },
   admin: {
