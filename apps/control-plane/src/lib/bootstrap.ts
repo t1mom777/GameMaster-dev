@@ -226,6 +226,29 @@ async function ensureSeedFiles() {
   await fs.mkdir(uploadRoot, { recursive: true })
 }
 
+async function ensureSchemaRepairs(payload: Payload) {
+  const db = payload.db as {
+    drizzle: unknown
+    execute: (args: { drizzle: unknown; sql: unknown }) => Promise<unknown>
+  }
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE game_sessions_rels
+      ADD COLUMN IF NOT EXISTS players_id integer
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE INDEX IF NOT EXISTS game_sessions_rels_players_id_idx
+      ON game_sessions_rels (players_id)
+    `,
+  })
+}
+
 function getSeedMimeType(filePath: string): string {
   const extension = path.extname(filePath).toLowerCase()
 
@@ -268,6 +291,7 @@ async function materializeSeedDocument(document: SeedDocument) {
 
 export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> {
   await ensureSeedFiles()
+  await ensureSchemaRepairs(payload)
   const llmProvider = process.env.GOOGLE_API_KEY ? 'gemini' : 'openai'
   const llmModel = llmProvider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4.1-mini'
 
