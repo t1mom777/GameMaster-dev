@@ -247,6 +247,22 @@ async function ensureSchemaRepairs(payload: Payload) {
       ON game_sessions_rels (players_id)
     `,
   })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE payload_locked_documents_rels
+      ADD COLUMN IF NOT EXISTS admins_id integer,
+      ADD COLUMN IF NOT EXISTS players_id integer,
+      ADD COLUMN IF NOT EXISTS player_mappings_id integer,
+      ADD COLUMN IF NOT EXISTS campaigns_id integer,
+      ADD COLUMN IF NOT EXISTS worlds_id integer,
+      ADD COLUMN IF NOT EXISTS rulesets_id integer,
+      ADD COLUMN IF NOT EXISTS documents_id integer,
+      ADD COLUMN IF NOT EXISTS game_sessions_id integer,
+      ADD COLUMN IF NOT EXISTS provider_connections_id integer
+    `,
+  })
 }
 
 function getSeedMimeType(filePath: string): string {
