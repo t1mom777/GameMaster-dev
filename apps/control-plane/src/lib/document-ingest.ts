@@ -21,6 +21,14 @@ type DocumentRecord = {
 
 const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown'])
 
+type DocumentStatusPatch = {
+  chunkCount?: number | null
+  ingestError?: string
+  lastIngestedAt?: string
+  reindexRequested?: boolean
+  status?: 'error' | 'indexing' | 'ready' | 'uploaded'
+}
+
 function resolveUploadPath(filename: string): string {
   return path.resolve(process.cwd(), 'media/documents', filename)
 }
@@ -115,6 +123,64 @@ function qdrantPointId(documentId: number | string, chunkIndex: number): number 
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
+function normalizeDocumentId(input: number | string): number | string {
+  if (typeof input === 'number') {
+    return input
+  }
+
+  return /^\d+$/.test(input) ? Number(input) : input
+}
+
+async function patchDocumentRecord(
+  payload: Payload,
+  documentId: number | string,
+  data: DocumentStatusPatch,
+  req?: PayloadRequest,
+): Promise<void> {
+  await payload.db.updateOne({
+    collection: 'documents',
+    data,
+    id: normalizeDocumentId(documentId),
+    req,
+    returning: false,
+  })
+}
+
+export async function markDocumentIndexing(
+  payload: Payload,
+  documentId: number | string,
+  req?: PayloadRequest,
+): Promise<void> {
+  await patchDocumentRecord(
+    payload,
+    documentId,
+    {
+      ingestError: '',
+      reindexRequested: false,
+      status: 'indexing',
+    },
+    req,
+  )
+}
+
+export async function markDocumentIngestError(
+  payload: Payload,
+  documentId: number | string,
+  message: string,
+  req?: PayloadRequest,
+): Promise<void> {
+  await patchDocumentRecord(
+    payload,
+    documentId,
+    {
+      ingestError: message,
+      reindexRequested: false,
+      status: 'error',
+    },
+    req,
+  )
+}
+
 export async function removeDocumentVectors(docId: string): Promise<void> {
   const client = getQdrantClient()
   await client.delete(getQdrantCollection(), {
@@ -178,18 +244,15 @@ export async function ingestDocument(
     wait: true,
   })
 
-  await payload.update({
-    collection: 'documents',
-    context: {
-      skipDocumentSync: true,
-    },
-    data: {
+  await patchDocumentRecord(
+    payload,
+    document.id,
+    {
       chunkCount: chunks.length,
       ingestError: '',
       lastIngestedAt: new Date().toISOString(),
       status: 'ready',
     },
-    id: document.id,
     req,
-  })
+  )
 }

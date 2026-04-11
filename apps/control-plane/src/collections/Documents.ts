@@ -2,7 +2,12 @@ import path from 'path'
 import type { CollectionConfig } from 'payload'
 
 import { hasAdminSession } from '@/lib/access'
-import { ingestDocument, removeDocumentVectors } from '@/lib/document-ingest'
+import {
+  ingestDocument,
+  markDocumentIngestError,
+  markDocumentIndexing,
+  removeDocumentVectors,
+} from '@/lib/document-ingest'
 import { toSlug } from '@/lib/slug'
 
 const uploadDirectory = path.resolve(process.cwd(), 'media/documents')
@@ -139,36 +144,17 @@ export const Documents: CollectionConfig = {
           return doc
         }
 
-        await req.payload.update({
-          collection: 'documents',
-          context: {
-            skipDocumentSync: true,
-          },
-          data: {
-            ingestError: '',
-            reindexRequested: false,
-            status: 'indexing',
-          },
-          id: doc.id,
-          req,
-        })
+        await markDocumentIndexing(req.payload, doc.id, req)
 
         try {
           await ingestDocument(req.payload, doc, req)
         } catch (error) {
-          await req.payload.update({
-            collection: 'documents',
-            context: {
-              skipDocumentSync: true,
-            },
-            data: {
-              ingestError: error instanceof Error ? error.message : 'Unknown ingest error',
-              reindexRequested: false,
-              status: 'error',
-            },
-            id: doc.id,
+          await markDocumentIngestError(
+            req.payload,
+            doc.id,
+            error instanceof Error ? error.message : 'Unknown ingest error',
             req,
-          })
+          )
         }
 
         return doc
