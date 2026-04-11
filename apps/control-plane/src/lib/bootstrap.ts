@@ -284,19 +284,110 @@ export async function ensureSchemaRepairs(payload: Payload) {
     drizzle: db.drizzle,
     sql: sql`
       ALTER TABLE players
-      ADD COLUMN IF NOT EXISTS auth_provider varchar(32) DEFAULT 'guest',
-      ADD COLUMN IF NOT EXISTS email varchar(255),
-      ADD COLUMN IF NOT EXISTS google_sub varchar(255),
-      ADD COLUMN IF NOT EXISTS avatar_url text,
-      ADD COLUMN IF NOT EXISTS personal_rulebook_id integer,
-      ADD COLUMN IF NOT EXISTS preferred_voice_mode varchar(32) DEFAULT 'auto-vad',
-      ADD COLUMN IF NOT EXISTS last_seen_at timestamp with time zone,
-      ADD COLUMN IF NOT EXISTS last_room_name text,
-      ADD COLUMN IF NOT EXISTS status varchar(32) DEFAULT 'active',
-      ADD COLUMN IF NOT EXISTS quota_tier varchar(32) DEFAULT 'standard',
-      ADD COLUMN IF NOT EXISTS monthly_session_quota integer DEFAULT 12,
-      ADD COLUMN IF NOT EXISTS monthly_voice_minutes integer DEFAULT 600,
-      ADD COLUMN IF NOT EXISTS can_create_rooms boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS auth_provider varchar(32) DEFAULT 'guest'
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS email varchar(255)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS google_sub varchar(255)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS avatar_url text
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS personal_rulebook_id integer
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS preferred_voice_mode varchar(32) DEFAULT 'auto-vad'
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS last_seen_at timestamp with time zone
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS last_room_name text
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS status varchar(32) DEFAULT 'active'
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS quota_tier varchar(32) DEFAULT 'standard'
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS monthly_session_quota integer DEFAULT 12
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS monthly_voice_minutes integer DEFAULT 600
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS can_create_rooms boolean DEFAULT false
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
       ADD COLUMN IF NOT EXISTS access_notes text
     `,
   })

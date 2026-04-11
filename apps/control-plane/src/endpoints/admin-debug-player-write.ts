@@ -1,6 +1,7 @@
 import type { Endpoint } from 'payload'
 
 import { requireAdmin } from '@/lib/access'
+import { ensureSchemaRepairs } from '@/lib/bootstrap'
 
 function serializeError(error: unknown) {
   if (!(error instanceof Error)) {
@@ -45,6 +46,8 @@ export const adminDebugPlayerWriteEndpoint: Endpoint = {
     const random = Math.floor(Math.random() * 10_000_000)
 
     try {
+      await ensureSchemaRepairs(req.payload)
+
       const created = await req.payload.create({
         collection: 'players',
         data: {
