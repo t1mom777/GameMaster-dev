@@ -67,9 +67,15 @@ export function PlayerLibraryManager() {
 
   const activeBooks = useMemo(() => books.filter((book) => book.isActive), [books])
   const readyBooks = useMemo(() => books.filter((book) => book.isActive && book.status === 'ready'), [books])
+  const hasPendingBooks = useMemo(
+    () => books.some((book) => book.status === 'uploaded' || book.status === 'indexing'),
+    [books],
+  )
 
-  async function refreshLibrary() {
-    setIsLoading(true)
+  async function refreshLibrary(options?: { silent?: boolean }) {
+    if (!options?.silent) {
+      setIsLoading(true)
+    }
 
     try {
       const response = await fetch('/api/gm/public/player-library', {
@@ -88,13 +94,27 @@ export function PlayerLibraryManager() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to load your game library.')
     } finally {
-      setIsLoading(false)
+      if (!options?.silent) {
+        setIsLoading(false)
+      }
     }
   }
 
   useEffect(() => {
     void refreshLibrary()
   }, [])
+
+  useEffect(() => {
+    if (!hasPendingBooks) {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      void refreshLibrary({ silent: true })
+    }, 4000)
+
+    return () => window.clearInterval(interval)
+  }, [hasPendingBooks])
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -142,8 +162,8 @@ export function PlayerLibraryManager() {
 
       setMessage(
         replaceDocumentId
-          ? 'Your book was replaced and the active game context was updated.'
-          : 'The book was added to your library and synced into your game.',
+          ? 'Your book was replaced. Indexing will refresh the active game automatically.'
+          : 'Your book was added. Indexing will refresh the active game automatically.',
       )
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to update your library.')
@@ -228,6 +248,13 @@ export function PlayerLibraryManager() {
         Keep one primary rulebook and any number of supporting books. Active books are synced into
         your personal game automatically before voice play starts.
       </p>
+
+      {hasPendingBooks && (
+        <div className="status-line">
+          <LoaderCircle className="spin" size={16} />
+          Indexing is still running. This panel refreshes automatically.
+        </div>
+      )}
 
       <div className="library-metrics">
         <div>

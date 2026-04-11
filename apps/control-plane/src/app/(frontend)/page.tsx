@@ -79,7 +79,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
           <h2>Personal library, persistent game, voice-first play</h2>
           <ul className="hero__checklist">
             <li>Google SSO before any playable presence</li>
-            <li>One player-owned game session behind the scenes</li>
+            <li>Your library stays attached to one player identity</li>
             <li>Primary rulebook plus supporting books</li>
             <li>Speaker labeling only when more than one human voice is present</li>
           </ul>
@@ -142,7 +142,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
             </div>
             <h3>Start or continue with VAD</h3>
             <p>
-              The voice runtime stays behind the scenes. You open one personal game surface, check the mic, confirm speakers if needed, and play.
+              Open one personal game surface, check the mic, confirm speakers only if needed, and stay in scene.
             </p>
             <div className="room-card__footer">
               <span>{playerGame ? 'Auto VAD session prepared' : 'Voice opens after sign-in'}</span>

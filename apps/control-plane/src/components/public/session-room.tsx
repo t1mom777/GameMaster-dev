@@ -593,7 +593,7 @@ export function SessionRoom(props: SessionRoomProps) {
         <div className="panel-card panel-card--centered">
           <LoaderCircle className="spin" size={22} />
           <h3>Connecting voice</h3>
-          <p>Your player token is ready. The live session is wiring up voice now.</p>
+          <p>Your voice session is opening now.</p>
         </div>
       )}
 

@@ -44,7 +44,7 @@ export default async function LoginPage(props: {
 
           <ul className="auth-list">
             <li>Your library stays attached to the same player identity</li>
-            <li>Your game session is provisioned privately behind the scenes</li>
+            <li>Your books and voice setup stay with your player profile</li>
             <li>Voice onboarding happens after sign-in, not before</li>
           </ul>
         </div>

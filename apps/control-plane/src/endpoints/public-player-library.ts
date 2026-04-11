@@ -49,6 +49,13 @@ type AuthorizedPlayerContext =
       response: Response
     }
 
+type PayloadUploadFile = {
+  data: Buffer
+  mimetype: string
+  name: string
+  size: number
+}
+
 function libraryResponse(library: LibraryDocumentRecord[]) {
   const primary = library.find((entry) => entry.isPrimary) || null
 
@@ -117,6 +124,43 @@ function validateLibraryFile(file: File): { extension: string; mimetype: string 
   }
 
   return { extension, mimetype }
+}
+
+async function toPayloadUploadFile(file: File, mimetype: string): Promise<PayloadUploadFile> {
+  const data = Buffer.from(await file.arrayBuffer())
+
+  return {
+    data,
+    mimetype,
+    name: file.name || 'player-book',
+    size: data.byteLength,
+  }
+}
+
+function libraryErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  if (typeof error === 'object' && error !== null && 'data' in error) {
+    const data = (error as { data?: unknown }).data as
+      | {
+          errors?: Array<{ message?: string }>
+          message?: string
+        }
+      | undefined
+
+    const firstFieldError = data?.errors?.find((entry) => typeof entry.message === 'string')?.message
+    if (firstFieldError) {
+      return firstFieldError
+    }
+
+    if (typeof data?.message === 'string' && data.message.trim()) {
+      return data.message
+    }
+  }
+
+  return fallback
 }
 
 function generatePlayerDocumentSlug(playerId: string | number, title: string): string {
@@ -312,47 +356,54 @@ export const publicPlayerLibrarySaveEndpoint: Endpoint = {
       requestedRole === 'primary-rulebook' ||
       replacement?.isPrimary === true ||
       (!existingPrimary && currentLibrary.length === 0)
-    const payloadFile = new File([file], file.name, {
-      type: mimetype,
-    })
+    try {
+      const payloadFile = await toPayloadUploadFile(file, mimetype)
+      const nextData = {
+        isActive: replacement?.isActive ?? true,
+        isPrimary: shouldBePrimary,
+        kind: shouldBePrimary ? ('primary-rulebook' as const) : ('supporting-book' as const),
+        ownerPlayer: context.player.id,
+        ruleset: null,
+        session: null,
+        status: 'uploaded' as const,
+        title: requestedTitle,
+      }
 
-    const nextData = {
-      isActive: replacement?.isActive ?? true,
-      isPrimary: shouldBePrimary,
-      kind: shouldBePrimary ? ('primary-rulebook' as const) : ('supporting-book' as const),
-      ownerPlayer: context.player.id,
-      ruleset: null,
-      session: null,
-      status: 'uploaded' as const,
-      title: requestedTitle,
+      const saved =
+        replacement
+          ? await req.payload.update({
+              collection: 'documents',
+              data: nextData,
+              file: payloadFile,
+              id: normalizeCollectionId(replacement.id),
+              overrideAccess: true,
+            } as never)
+          : await req.payload.create({
+              collection: 'documents',
+              data: {
+                ...nextData,
+                slug: generatePlayerDocumentSlug(context.player.id, requestedTitle),
+              },
+              file: payloadFile,
+              overrideAccess: true,
+            } as never)
+
+      const savedId = String((saved as { id: number | string }).id)
+
+      if (shouldBePrimary) {
+        await demoteOtherPrimaryBooks(req, context.player.id, savedId)
+      }
+
+      return Response.json(await refreshPlayerGameContext(req, context.player))
+    } catch (error) {
+      return Response.json(
+        {
+          error: 'player_library_save_failed',
+          message: libraryErrorMessage(error, 'Unable to save this book right now.'),
+        },
+        { status: 500 },
+      )
     }
-
-    const saved =
-      replacement
-        ? await req.payload.update({
-            collection: 'documents',
-            data: nextData,
-            file: payloadFile,
-            id: normalizeCollectionId(replacement.id),
-            overrideAccess: true,
-          } as never)
-        : await req.payload.create({
-            collection: 'documents',
-            data: {
-              ...nextData,
-              slug: generatePlayerDocumentSlug(context.player.id, requestedTitle),
-            },
-            file: payloadFile,
-            overrideAccess: true,
-          } as never)
-
-    const savedId = String((saved as { id: number | string }).id)
-
-    if (shouldBePrimary) {
-      await demoteOtherPrimaryBooks(req, context.player.id, savedId)
-    }
-
-    return Response.json(await refreshPlayerGameContext(req, context.player))
   },
 }
 
