@@ -284,7 +284,14 @@ async function ensureSchemaRepairs(payload: Payload) {
     drizzle: db.drizzle,
     sql: sql`
       ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS auth_provider varchar(32) DEFAULT 'guest',
+      ADD COLUMN IF NOT EXISTS email varchar(255),
+      ADD COLUMN IF NOT EXISTS google_sub varchar(255),
+      ADD COLUMN IF NOT EXISTS avatar_url text,
       ADD COLUMN IF NOT EXISTS personal_rulebook_id integer,
+      ADD COLUMN IF NOT EXISTS preferred_voice_mode varchar(32) DEFAULT 'auto-vad',
+      ADD COLUMN IF NOT EXISTS last_seen_at timestamp with time zone,
+      ADD COLUMN IF NOT EXISTS last_room_name text,
       ADD COLUMN IF NOT EXISTS status varchar(32) DEFAULT 'active',
       ADD COLUMN IF NOT EXISTS quota_tier varchar(32) DEFAULT 'standard',
       ADD COLUMN IF NOT EXISTS monthly_session_quota integer DEFAULT 12,
@@ -305,8 +312,19 @@ async function ensureSchemaRepairs(payload: Payload) {
   await db.execute({
     drizzle: db.drizzle,
     sql: sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS players_google_sub_unique_idx
+      ON players (google_sub)
+      WHERE google_sub IS NOT NULL
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
       UPDATE players
       SET
+        auth_provider = COALESCE(auth_provider, 'guest'),
+        preferred_voice_mode = COALESCE(preferred_voice_mode, 'auto-vad'),
         status = COALESCE(status, 'active'),
         quota_tier = COALESCE(quota_tier, 'standard'),
         monthly_session_quota = COALESCE(monthly_session_quota, 12),
