@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { getPayload } from 'payload'
 
 import {
-  findJoinableSessionsForPlayer,
-  listPublicSessions,
+  ensurePlayerGameSession,
+  listPlayerLibrary,
   loadAuthenticatedPlayer,
 } from '@/lib/player-access'
 import { isGooglePlayerAuthConfigured, readPlayerSessionFromCookieStore } from '@/lib/player-auth'
@@ -20,10 +20,10 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
   const siteSettings = await payload.findGlobal({
     slug: 'site-settings',
   })
-
-  const featuredSessions = playerRecord
-    ? await findJoinableSessionsForPlayer(payload, playerRecord, 3)
-    : await listPublicSessions(payload, 3)
+  const playerLibrary = playerRecord ? await listPlayerLibrary(payload, playerRecord) : []
+  const playerGame = playerRecord ? await ensurePlayerGameSession(payload, playerRecord) : null
+  const primaryBook = playerLibrary.find((entry) => entry.isPrimary) || null
+  const activeBooks = playerLibrary.filter((entry) => entry.isActive)
 
   const authNotice =
     searchParams?.auth === 'google-state'
@@ -42,8 +42,8 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
 
           <div className="hero__actions">
             {playerSession ? (
-              <Link className="button button--primary" href="/rooms">
-                Start playing
+              <Link className="button button--primary" href="/play">
+                Open my game
               </Link>
             ) : (
               <Link className="button button--primary" href="/login">
@@ -51,8 +51,8 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
               </Link>
             )}
 
-            <Link className="button button--ghost" href={playerSession ? '/rooms' : '/login'}>
-              Join room
+            <Link className="button button--ghost" href={playerSession ? '/play' : '/login'}>
+              Start playing
             </Link>
           </div>
 
@@ -63,11 +63,11 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
             </div>
             <div>
               <span>02</span>
-              <p>Pick the room you are allowed to join.</p>
+              <p>Upload your rulebook and supporting books.</p>
             </div>
             <div>
               <span>03</span>
-              <p>Check your mic and enter the scene.</p>
+              <p>Start or continue your game in Auto VAD.</p>
             </div>
           </div>
 
@@ -75,13 +75,13 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         </div>
 
         <aside className="hero__panel">
-          <p className="eyebrow">Flow</p>
-          <h2>Fast from sign-in to table</h2>
+          <p className="eyebrow">Product flow</p>
+          <h2>Personal library, persistent game, voice-first play</h2>
           <ul className="hero__checklist">
-            <li>Google SSO before any room presence</li>
-            <li>Simple room list for the current player</li>
-            <li>Mic check before join</li>
-            <li>Speaker labeling when more than one player is present</li>
+            <li>Google SSO before any playable presence</li>
+            <li>One player-owned game session behind the scenes</li>
+            <li>Primary rulebook plus supporting books</li>
+            <li>Speaker labeling only when more than one human voice is present</li>
           </ul>
         </aside>
       </section>
@@ -89,42 +89,68 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
       <section className="section-block">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Available rooms</p>
-            <h2>{playerSession ? 'Rooms you can enter right now' : 'A few rooms currently open for sign-in'}</h2>
+            <p className="eyebrow">Your game</p>
+            <h2>{playerSession ? 'Everything important in one surface' : 'A cleaner way to enter voice play'}</h2>
           </div>
-          <Link className="section-link" href={playerSession ? '/rooms' : '/login'}>
-            {playerSession ? 'Open my rooms' : 'Sign in to see more'}
+          <Link className="section-link" href={playerSession ? '/play' : '/login'}>
+            {playerSession ? 'Open my game' : 'Sign in to start'}
           </Link>
         </div>
 
         <div className="room-grid">
-          {featuredSessions.map((session) => (
-            <article className="room-card" key={String(session.id)}>
-              <div className="room-card__topline">
-                <span className="pill">{session.status}</span>
-                <span className="room-card__room">Room {session.roomName}</span>
-              </div>
-              <h3>{session.title}</h3>
-              <p>{session.publicSummary || 'A live voice session is ready for the table.'}</p>
-              <div className="room-card__footer">
-                <span>
-                  {session.ruleset && typeof session.ruleset === 'object' && 'title' in session.ruleset
-                    ? String(session.ruleset.title || '')
-                    : 'Campaign room'}
-                </span>
-                <Link className="text-link" href={playerSession ? `/session/${session.slug}` : '/login'}>
-                  {playerSession ? 'Enter room' : 'Sign in to join'}
-                </Link>
-              </div>
-            </article>
-          ))}
+          <article className="room-card">
+            <div className="room-card__topline">
+              <span className={`pill ${playerSession ? 'pill--accent' : ''}`}>
+                {playerSession ? 'Signed in' : 'Step 1'}
+              </span>
+            </div>
+            <h3>Identity first</h3>
+            <p>Keep one Google-backed player identity so your books, voice settings, and mappings stay consistent.</p>
+            <div className="room-card__footer">
+              <span>{playerSession ? 'Player profile active' : 'Google SSO required'}</span>
+              <Link className="text-link" href={playerSession ? '/play' : '/login'}>
+                {playerSession ? 'Continue' : 'Sign in'}
+              </Link>
+            </div>
+          </article>
 
-          {!featuredSessions.length && (
-            <article className="room-card room-card--empty">
-              <h3>No rooms are open just yet</h3>
-              <p>When the next table opens, it will appear here automatically.</p>
-            </article>
-          )}
+          <article className="room-card">
+            <div className="room-card__topline">
+              <span className={`pill ${primaryBook ? 'pill--accent' : ''}`}>
+                {primaryBook ? 'Primary ready' : 'Step 2'}
+              </span>
+            </div>
+            <h3>Own your books</h3>
+            <p>
+              {primaryBook
+                ? `${primaryBook.title} is your primary rulebook, with ${Math.max(playerLibrary.length - 1, 0)} supporting book${playerLibrary.length - 1 === 1 ? '' : 's'} in your library.`
+                : 'Upload a primary rulebook and any supporting books you want active during play.'}
+            </p>
+            <div className="room-card__footer">
+              <span>{playerSession ? `${activeBooks.length} active book${activeBooks.length === 1 ? '' : 's'}` : 'Library opens after sign-in'}</span>
+              <Link className="text-link" href={playerSession ? '/play' : '/login'}>
+                {playerSession ? 'Manage library' : 'Unlock library'}
+              </Link>
+            </div>
+          </article>
+
+          <article className="room-card">
+            <div className="room-card__topline">
+              <span className={`pill ${playerGame ? 'pill--accent' : ''}`}>
+                {playerGame?.status === 'live' ? 'Live' : 'Step 3'}
+              </span>
+            </div>
+            <h3>Start or continue with VAD</h3>
+            <p>
+              The voice runtime stays behind the scenes. You open one personal game surface, check the mic, confirm speakers if needed, and play.
+            </p>
+            <div className="room-card__footer">
+              <span>{playerGame ? 'Auto VAD session prepared' : 'Voice opens after sign-in'}</span>
+              <Link className="text-link" href={playerSession ? '/play' : '/login'}>
+                {playerSession ? 'Open my game' : 'Start playing'}
+              </Link>
+            </div>
+          </article>
         </div>
       </section>
     </main>

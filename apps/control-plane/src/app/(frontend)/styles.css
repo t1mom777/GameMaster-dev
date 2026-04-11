@@ -135,10 +135,13 @@ button {
 
 .hero,
 .auth-shell,
+.play-hero,
 .rooms-hero,
 .session-hero,
 .console-card,
 .room-card,
+.library-card,
+.game-card,
 .rulebook-card,
 .info-card,
 .auth-card,
@@ -175,9 +178,12 @@ button {
 }
 
 .hero h1,
+.play-hero h1,
 .rooms-hero h1,
 .session-hero h1,
 .auth-shell h1,
+.library-card h2,
+.game-card h2,
 .rulebook-card h2,
 .info-card h2,
 .section-heading h2,
@@ -197,10 +203,13 @@ button {
 
 .hero__lede,
 .auth-shell__copy p,
+.play-hero p,
 .rooms-hero p,
 .session-hero p,
 .room-card p,
 .console-card__lede,
+.library-card__lede,
+.game-card__lede,
 .panel-card__copy,
 .rulebook-card__lede,
 .info-card,
@@ -397,6 +406,8 @@ button {
 .room-card__stats,
 .session-hero__facts,
 .console-card__header,
+.library-card__header,
+.game-card__header,
 .rulebook-card__header,
 .panel-card__header {
   align-items: center;
@@ -425,7 +436,9 @@ button {
 .room-card__stats,
 .session-hero__facts,
 .session-strip,
-.rulebook-meta {
+.rulebook-meta,
+.library-metrics,
+.game-card__facts {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -434,7 +447,9 @@ button {
 .room-card__stats div,
 .session-hero__facts div,
 .session-strip div,
-.rulebook-meta div {
+.rulebook-meta div,
+.library-metrics div,
+.game-card__facts div {
   display: grid;
   gap: 6px;
 }
@@ -442,7 +457,9 @@ button {
 .room-card__stats span,
 .session-hero__facts span,
 .session-strip span,
-.rulebook-meta dt {
+.rulebook-meta dt,
+.library-metrics span,
+.game-card__facts span {
   color: var(--muted);
   font-size: 0.8rem;
   font-weight: 600;
@@ -453,7 +470,9 @@ button {
 .room-card__stats strong,
 .session-hero__facts strong,
 .session-strip strong,
-.rulebook-meta dd {
+.rulebook-meta dd,
+.library-metrics strong,
+.game-card__facts strong {
   font-size: 1rem;
   margin: 0;
 }
@@ -484,14 +503,32 @@ button {
     linear-gradient(180deg, rgba(13, 18, 28, 0.96), rgba(10, 13, 20, 0.98));
 }
 
+.play-hero,
 .rooms-hero,
 .session-hero,
 .console-card,
+.library-card,
+.game-card,
 .rulebook-card,
 .info-card {
   padding: 28px;
 }
 
+.play-hero {
+  align-items: end;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.play-hero__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.play-hero h1,
 .rooms-hero h1,
 .session-hero h1,
 .auth-shell h1 {
@@ -508,15 +545,54 @@ button {
   color: var(--muted);
 }
 
+.library-card,
+.game-card,
 .rulebook-card,
 .console-card {
   display: grid;
   gap: 18px;
 }
 
+.library-card h2,
+.game-card h2,
 .rulebook-card h2,
 .console-card h2 {
   font-size: clamp(1.8rem, 3vw, 2.3rem);
+}
+
+.library-card__lede,
+.game-card__lede {
+  margin: 0;
+}
+
+.library-metrics,
+.game-card__facts {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+}
+
+.game-card__notes {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.game-card__notes h3 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.5rem;
+  margin: 0 0 12px;
+}
+
+.game-card__notes ul {
+  color: var(--muted-strong);
+  display: grid;
+  gap: 12px;
+  line-height: 1.6;
+  margin: 0;
+  padding-left: 18px;
 }
 
 .rulebook-state {
@@ -539,6 +615,74 @@ button {
 
 .rulebook-meta {
   margin: 0;
+}
+
+.library-list {
+  display: grid;
+  gap: 16px;
+}
+
+.library-item {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.library-item__topline,
+.library-item__actions,
+.library-item__meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.library-item__body {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(220px, 1.1fr);
+}
+
+.library-item__copy strong {
+  display: block;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.45rem;
+}
+
+.library-item__copy p {
+  margin: 6px 0 0;
+}
+
+.library-item__meta {
+  align-items: end;
+}
+
+.library-item__meta div {
+  display: grid;
+  gap: 6px;
+}
+
+.library-item__meta span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.library-form {
+  display: grid;
+  gap: 18px;
+}
+
+.library-form__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .rulebook-form,
@@ -729,6 +873,7 @@ button {
 
 @media (max-width: 1100px) {
   .hero,
+  .play-hero,
   .section-block--split,
   .session-shell,
   .auth-shell,
@@ -749,10 +894,18 @@ button {
     flex-direction: column;
   }
 
+  .play-hero {
+    align-items: start;
+    flex-direction: column;
+  }
+
   .hero,
+  .play-hero,
   .rooms-hero,
   .session-hero,
   .console-card,
+  .library-card,
+  .game-card,
   .rulebook-card,
   .info-card,
   .auth-shell__copy,
@@ -766,14 +919,23 @@ button {
   .room-card__stats,
   .session-hero__facts,
   .session-strip,
-  .rulebook-meta {
+  .rulebook-meta,
+  .library-metrics,
+  .game-card__facts,
+  .library-form__grid,
+  .library-item__body {
     grid-template-columns: 1fr;
   }
 
   .section-heading,
   .room-card__topline,
   .room-card__footer,
+  .library-item__topline,
+  .library-item__actions,
+  .library-item__meta,
   .console-card__header,
+  .library-card__header,
+  .game-card__header,
   .rulebook-card__header,
   .panel-card__header {
     align-items: start;

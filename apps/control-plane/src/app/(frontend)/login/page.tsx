@@ -16,7 +16,7 @@ export default async function LoginPage(props: {
   const returnTo = sanitizeReturnTo(searchParams?.returnTo)
 
   if (playerSession) {
-    redirect(returnTo === '/' ? '/rooms' : returnTo)
+    redirect(returnTo === '/' ? '/play' : returnTo)
   }
 
   const payload = await getPayload({ config })
@@ -43,8 +43,8 @@ export default async function LoginPage(props: {
           </p>
 
           <ul className="auth-list">
-            <li>Your name carries into rooms automatically</li>
-            <li>Restricted rooms only appear when you are allowed in</li>
+            <li>Your library stays attached to the same player identity</li>
+            <li>Your game session is provisioned privately behind the scenes</li>
             <li>Voice onboarding happens after sign-in, not before</li>
           </ul>
         </div>
@@ -52,12 +52,12 @@ export default async function LoginPage(props: {
         <div className="auth-card">
           <p className="eyebrow">Continue</p>
           <h2>Google SSO required</h2>
-          <p>Use the same player identity each time so rooms, speaker labels, and session access stay clean.</p>
+          <p>Use the same player identity each time so books, speaker labels, and your active game stay clean.</p>
 
           {authNotice && <div className="notice-card">{authNotice}</div>}
 
           {googlePlayerAuthConfigured ? (
-            <a className="button button--primary button--full" href={`/auth/google/start?returnTo=${encodeURIComponent(returnTo || '/rooms')}`}>
+            <a className="button button--primary button--full" href={`/auth/google/start?returnTo=${encodeURIComponent(returnTo || '/play')}`}>
               Sign in with Google
             </a>
           ) : (

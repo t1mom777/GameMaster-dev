@@ -24,10 +24,11 @@ import {
   publicPlayerMappingsSaveEndpoint,
 } from './endpoints/public-player-mappings'
 import {
-  publicPlayerRulebookDeleteEndpoint,
-  publicPlayerRulebookGetEndpoint,
-  publicPlayerRulebookSaveEndpoint,
-} from './endpoints/public-player-rulebook'
+  publicPlayerLibraryDeleteEndpoint,
+  publicPlayerLibraryGetEndpoint,
+  publicPlayerLibrarySaveEndpoint,
+  publicPlayerLibraryUpdateEndpoint,
+} from './endpoints/public-player-library'
 import { publicSessionsEndpoint } from './endpoints/public-sessions'
 import { runtimeRetrieveEndpoint } from './endpoints/runtime-retrieve'
 import { runtimeSessionEndpoint } from './endpoints/runtime-session'
@@ -63,9 +64,10 @@ export default buildConfig({
     publicJoinEndpoint,
     publicPlayerMappingsGetEndpoint,
     publicPlayerMappingsSaveEndpoint,
-    publicPlayerRulebookGetEndpoint,
-    publicPlayerRulebookSaveEndpoint,
-    publicPlayerRulebookDeleteEndpoint,
+    publicPlayerLibraryGetEndpoint,
+    publicPlayerLibrarySaveEndpoint,
+    publicPlayerLibraryUpdateEndpoint,
+    publicPlayerLibraryDeleteEndpoint,
     internalBootstrapEndpoint,
     runtimeSessionEndpoint,
     runtimeRetrieveEndpoint,

@@ -233,7 +233,7 @@ export function SessionRoom(props: SessionRoomProps) {
       )
 
       if (!response.ok) {
-        throw new Error('Unable to load player labels.')
+        throw new Error('Unable to load speaker labels.')
       }
 
       const payload = (await response.json()) as {
@@ -277,7 +277,7 @@ export function SessionRoom(props: SessionRoomProps) {
       setError(
         deviceError instanceof Error
           ? deviceError.message
-          : 'Microphone access was blocked for this room.',
+          : 'Microphone access was blocked for this game session.',
       )
     }
   }
@@ -378,7 +378,7 @@ export function SessionRoom(props: SessionRoomProps) {
     setError(null)
 
     if (micCheckState !== 'ready') {
-      setError('Run the microphone check before joining the room.')
+      setError('Run the microphone check before starting the game.')
       return
     }
 
@@ -398,13 +398,13 @@ export function SessionRoom(props: SessionRoomProps) {
 
       const payload = (await response.json()) as JoinBundle & { message?: string }
       if (!response.ok) {
-        throw new Error(payload.message || 'Unable to join this room.')
+        throw new Error(payload.message || 'Unable to start this game session.')
       }
 
       window.localStorage.setItem(NAME_STORAGE_KEY, playerName)
       await connectToRoom(payload)
     } catch (joinError) {
-      setError(joinError instanceof Error ? joinError.message : 'Unable to join this room.')
+      setError(joinError instanceof Error ? joinError.message : 'Unable to start this game session.')
       setStep('preflight')
     }
   }
@@ -485,7 +485,7 @@ export function SessionRoom(props: SessionRoomProps) {
 
   const liveSummary = useMemo(() => {
     if (step === 'connecting') {
-      return 'Connecting to room'
+      return 'Connecting voice'
     }
 
     if (step === 'mapping') {
@@ -493,17 +493,17 @@ export function SessionRoom(props: SessionRoomProps) {
     }
 
     if (isConnected) {
-      return 'Room live'
+      return 'Session live'
     }
 
-    return 'Ready to join'
+    return 'Ready to play'
   }, [isConnected, step])
 
   return (
     <section className="console-card">
       <div className="console-card__header">
         <div>
-          <p className="eyebrow">Room console</p>
+          <p className="eyebrow">Voice session</p>
           <h2>{liveSummary}</h2>
         </div>
 
@@ -570,7 +570,7 @@ export function SessionRoom(props: SessionRoomProps) {
                 onClick={joinSession}
                 type="button"
               >
-                Enter room
+                Start with VAD
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -582,7 +582,7 @@ export function SessionRoom(props: SessionRoomProps) {
                   Your microphone is ready for this session.
                 </>
               )}
-              {micCheckState === 'idle' && 'Run a quick mic check before you join.'}
+              {micCheckState === 'idle' && 'Run a quick mic check before you start.'}
               {micCheckState === 'blocked' && 'Microphone access is blocked for this browser session.'}
             </div>
           </div>
@@ -592,8 +592,8 @@ export function SessionRoom(props: SessionRoomProps) {
       {step === 'connecting' && (
         <div className="panel-card panel-card--centered">
           <LoaderCircle className="spin" size={22} />
-          <h3>Connecting to the room</h3>
-          <p>Your player token is ready. The room is wiring up voice now.</p>
+          <h3>Connecting voice</h3>
+          <p>Your player token is ready. The live session is wiring up voice now.</p>
         </div>
       )}
 
@@ -608,7 +608,7 @@ export function SessionRoom(props: SessionRoomProps) {
           </div>
 
           <p className="panel-card__copy">
-            More than one human player is in the room. Confirm the labels so the session can keep
+            More than one human player is present. Confirm the labels so the session can keep
             voices straight.
           </p>
 
@@ -677,6 +677,10 @@ export function SessionRoom(props: SessionRoomProps) {
               <span>Audio</span>
               <strong>{micEnabled ? 'Mic live' : 'Mic muted'}</strong>
             </div>
+            <div>
+              <span>Voice mode</span>
+              <strong>Auto VAD</strong>
+            </div>
           </div>
 
           <div className="panel-card">
@@ -688,8 +692,8 @@ export function SessionRoom(props: SessionRoomProps) {
               <Radio size={18} />
             </div>
             <p className="panel-card__copy">
-              Keep this page open. Voice controls stay lightweight so the table stays focused on the
-              scene instead of the interface.
+              Keep this page open. Voice controls stay lightweight so the game stays focused on the
+              scene instead of the control surface.
             </p>
 
             <div className="inline-actions">
@@ -706,7 +710,7 @@ export function SessionRoom(props: SessionRoomProps) {
 
               <button className="button button--ghost" onClick={resetRoom} type="button">
                 <RefreshCcw size={18} />
-                Leave room
+                Leave session
               </button>
             </div>
           </div>
@@ -726,13 +730,13 @@ export function SessionRoom(props: SessionRoomProps) {
         ))}
 
         {!participantDisplay.length && (
-          <div className="participant-pill participant-pill--empty">Join the room to load the table.</div>
+          <div className="participant-pill participant-pill--empty">Start the voice session to load the table.</div>
         )}
       </div>
 
       {joinBundle && (
         <div className="subtle-note">
-          Connected to room <strong>{joinBundle.roomName}</strong>.
+          Voice session connected and ready.
         </div>
       )}
     </section>

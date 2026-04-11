@@ -21,7 +21,7 @@ const bodyFont = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  description: 'Voice-first tabletop adventures with a clean room-based multiplayer flow.',
+  description: 'Voice-first tabletop adventures with a private player library and a hidden admin control plane.',
   title: 'GameMaster',
 }
 
@@ -41,8 +41,8 @@ export default async function FrontendLayout(props: { children: React.ReactNode 
             <nav className="topbar__actions" aria-label="Player">
               {playerSession ? (
                 <>
-                  <Link className="topbar__link" href="/rooms">
-                    Rooms
+                  <Link className="topbar__link" href="/play">
+                    My game
                   </Link>
                   <a className="button button--ghost" href="/auth/logout?returnTo=/">
                     Sign out

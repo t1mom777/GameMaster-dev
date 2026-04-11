@@ -19,12 +19,21 @@ The old GM app remains the protected reference system and is not part of this ro
 
 ## What Changed
 
-- Public player routes are now limited to ` / `, ` /login `, ` /rooms `, ` /join `, and ` /session/[slug]`.
-- Google SSO is the required path before a player can join a room.
-- Admin access is hidden under `https://game.dima.click/t1m0m` and is no longer linked from the public UI.
-- Speaker labeling is now part of the player room flow when multiple human voices are present.
-- Signed-in players can upload and replace one personal rulebook from the player app, and that rulebook follows them into joined rooms.
-- Payload admin remains the place for campaigns, worlds, rulebooks, sessions, quotas, runtime defaults, and diagnostics.
+- Public player routes are centered on a player-owned flow:
+  - `/`
+  - `/login`
+  - `/play`
+  - `/session/[slug]`
+- Google SSO is the required path before a player can enter the playable experience.
+- Public UI no longer exposes admin entrypoints, provider diagnostics, or setup copy.
+- Each signed-in player gets a private game session behind the scenes. LiveKit rooms still exist technically, but they are no longer part of the player-facing model.
+- Signed-in players manage a personal library from the player app:
+  - one primary rulebook
+  - multiple supporting books
+  - replace, rename, remove, and include/exclude from active play
+- Active player books are synced into the player’s game session automatically before voice starts.
+- Speaker labeling remains in-session and only appears when multiple human voices are present.
+- Payload admin remains the place for campaigns, worlds, rulebooks, sessions, quotas, runtime defaults, provider visibility, and diagnostics.
 
 ## Docs
 

@@ -243,6 +243,22 @@ export async function ensureSchemaRepairs(payload: Payload) {
   await db.execute({
     drizzle: db.drizzle,
     sql: sql`
+      ALTER TABLE game_sessions
+      ADD COLUMN IF NOT EXISTS owner_player_id integer
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE INDEX IF NOT EXISTS game_sessions_owner_player_id_idx
+      ON game_sessions (owner_player_id)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
       CREATE INDEX IF NOT EXISTS game_sessions_rels_players_id_idx
       ON game_sessions_rels (players_id)
     `,

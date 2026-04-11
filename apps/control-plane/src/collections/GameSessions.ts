@@ -12,7 +12,7 @@ export const GameSessions: CollectionConfig = {
     update: ({ req }) => hasAdminSession(req),
   },
   admin: {
-    defaultColumns: ['title', 'status', 'roomName', 'publicJoinEnabled', 'allowGuests', 'scheduledFor'],
+    defaultColumns: ['title', 'ownerPlayer', 'status', 'roomName', 'publicJoinEnabled', 'allowGuests', 'scheduledFor'],
     group: 'Play',
     useAsTitle: 'title',
   },
@@ -102,6 +102,14 @@ export const GameSessions: CollectionConfig = {
     {
       name: 'ruleset',
       relationTo: 'rulesets',
+      type: 'relationship',
+    },
+    {
+      admin: {
+        description: 'When set, this session is the player-owned game surface for that account.',
+      },
+      name: 'ownerPlayer',
+      relationTo: 'players',
       type: 'relationship',
     },
     {

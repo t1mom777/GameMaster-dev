@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 const PLAYER_AUTH_COOKIE = 'gm-player-session'
 const LOGIN_ROUTE = '/login'
-const PLAYER_ONLY_PREFIXES = ['/join', '/rooms', '/session', '/sessions']
+const PLAYER_ONLY_PREFIXES = ['/join', '/play', '/rooms', '/session', '/sessions']
 
 type PlayerCookieSession = {
   authProvider: 'google'
@@ -107,7 +107,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname === LOGIN_ROUTE && playerSession) {
-    return NextResponse.redirect(new URL('/rooms', request.url))
+    return NextResponse.redirect(new URL('/play', request.url))
   }
 
   if (requiresPlayerSession(pathname) && !playerSession) {
@@ -118,5 +118,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/join/:path*', '/login', '/rooms/:path*', '/session/:path*', '/sessions/:path*', '/setup'],
+  matcher: ['/join/:path*', '/login', '/play/:path*', '/rooms/:path*', '/session/:path*', '/sessions/:path*', '/setup'],
 }

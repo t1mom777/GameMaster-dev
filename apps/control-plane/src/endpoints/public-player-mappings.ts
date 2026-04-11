@@ -65,7 +65,7 @@ async function resolveAuthorizedPlayerContext(
       response: Response.json(
         {
           error: 'player_sign_in_required',
-          message: 'Sign in with Google before opening voice sessions.',
+          message: 'Sign in with Google before opening voice play.',
         },
         { status: 401 },
       ),
@@ -78,7 +78,7 @@ async function resolveAuthorizedPlayerContext(
       response: Response.json(
         {
           error: 'player_access_denied',
-          message: 'This player account cannot enter rooms right now.',
+          message: 'This player account cannot enter voice play right now.',
         },
         { status: 403 },
       ),
@@ -91,7 +91,7 @@ async function resolveAuthorizedPlayerContext(
       response: Response.json(
         {
           error: 'session_access_denied',
-          message: 'This room is not available for the current player.',
+          message: 'This game session is not available for the current player.',
         },
         { status: 404 },
       ),
