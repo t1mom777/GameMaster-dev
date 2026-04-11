@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import fs from 'fs/promises'
 import path from 'path'
 import pdfParse from 'pdf-parse'
-import type { Payload } from 'payload'
+import type { Payload, PayloadRequest } from 'payload'
 
 import { embedText } from './embeddings'
 import { ensureKnowledgeCollection, getQdrantClient, getQdrantCollection } from './qdrant'
@@ -132,7 +132,11 @@ export async function removeDocumentVectors(docId: string): Promise<void> {
   })
 }
 
-export async function ingestDocument(payload: Payload, document: DocumentRecord): Promise<void> {
+export async function ingestDocument(
+  payload: Payload,
+  document: DocumentRecord,
+  req?: PayloadRequest,
+): Promise<void> {
   const rawText = await extractText(document)
   const chunks = chunkText(rawText)
 
@@ -186,5 +190,6 @@ export async function ingestDocument(payload: Payload, document: DocumentRecord)
       status: 'ready',
     },
     id: document.id,
+    req,
   })
 }

@@ -150,10 +150,11 @@ export const Documents: CollectionConfig = {
             status: 'indexing',
           },
           id: doc.id,
+          req,
         })
 
         try {
-          await ingestDocument(req.payload, doc)
+          await ingestDocument(req.payload, doc, req)
         } catch (error) {
           await req.payload.update({
             collection: 'documents',
@@ -166,6 +167,7 @@ export const Documents: CollectionConfig = {
               status: 'error',
             },
             id: doc.id,
+            req,
           })
         }
 
