@@ -65,7 +65,13 @@ export async function GET(request: NextRequest) {
     })
 
     return response
-  } catch {
+  } catch (error) {
+    console.error('Google auth callback failed', {
+      error: error instanceof Error ? error.message : String(error),
+      hasCode: Boolean(code),
+      hasStateCookie: Boolean(stateCookie),
+      returnTo,
+    })
     return redirectWithError(request, returnTo, 'google-failed')
   }
 }

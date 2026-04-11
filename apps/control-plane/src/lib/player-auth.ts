@@ -324,7 +324,10 @@ export async function fetchGoogleUserInfo(code: string): Promise<GoogleUserInfo>
   })
 
   if (!tokenResponse.ok) {
-    throw new Error(`Google token exchange failed with ${tokenResponse.status}.`)
+    const responseText = await tokenResponse.text().catch(() => '')
+    throw new Error(
+      `Google token exchange failed with ${tokenResponse.status}${responseText ? `: ${responseText}` : '.'}`,
+    )
   }
 
   const tokenPayload = (await tokenResponse.json()) as { access_token?: string }
@@ -339,7 +342,10 @@ export async function fetchGoogleUserInfo(code: string): Promise<GoogleUserInfo>
   })
 
   if (!userInfoResponse.ok) {
-    throw new Error(`Google userinfo fetch failed with ${userInfoResponse.status}.`)
+    const responseText = await userInfoResponse.text().catch(() => '')
+    throw new Error(
+      `Google userinfo fetch failed with ${userInfoResponse.status}${responseText ? `: ${responseText}` : '.'}`,
+    )
   }
 
   const userInfo = (await userInfoResponse.json()) as GoogleUserInfo
