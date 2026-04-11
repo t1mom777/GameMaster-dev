@@ -33,6 +33,7 @@ import { runtimeRetrieveEndpoint } from './endpoints/runtime-retrieve'
 import { runtimeSessionEndpoint } from './endpoints/runtime-session'
 import { RuntimeDefaults } from './globals/RuntimeDefaults'
 import { SiteSettings } from './globals/SiteSettings'
+import { ensureSchemaRepairs } from './lib/bootstrap'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -74,6 +75,9 @@ export default buildConfig({
   globals: [RuntimeDefaults, SiteSettings],
   routes: {
     admin: '/t1m0m',
+  },
+  onInit: async (payload) => {
+    await ensureSchemaRepairs(payload)
   },
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

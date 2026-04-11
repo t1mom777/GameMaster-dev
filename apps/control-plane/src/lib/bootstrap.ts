@@ -226,7 +226,7 @@ async function ensureSeedFiles() {
   await fs.mkdir(uploadRoot, { recursive: true })
 }
 
-async function ensureSchemaRepairs(payload: Payload) {
+export async function ensureSchemaRepairs(payload: Payload) {
   const db = payload.db as {
     drizzle: unknown
     execute: (args: { drizzle: unknown; sql: unknown }) => Promise<unknown>
