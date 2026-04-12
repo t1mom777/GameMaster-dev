@@ -92,6 +92,9 @@ services:
           udp_port: 3478
         keys:
           ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+    labels:
+      - "traefik.http.services.http-0-${COOLIFY_RESOURCE_UUID}-livekit.loadbalancer.server.port=7880"
+      - "traefik.http.services.https-0-${COOLIFY_RESOURCE_UUID}-livekit.loadbalancer.server.port=7880"
     ports:
       - "7880:7880"
       - "7881:7881"
