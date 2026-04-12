@@ -4,6 +4,7 @@ import path from 'path'
 import pdfParse from 'pdf-parse'
 import type { Payload, PayloadRequest } from 'payload'
 
+import { normalizeDocumentToMarkdown } from './document-markdown'
 import { embedText } from './embeddings'
 import { ensureKnowledgeCollection, getQdrantClient, getQdrantCollection } from './qdrant'
 
@@ -79,7 +80,7 @@ function chunkText(input: string, maxLength = 1200, overlap = 200): string[] {
   return chunks
 }
 
-async function extractText(document: DocumentRecord): Promise<string> {
+async function extractMarkdown(document: DocumentRecord): Promise<string> {
   if (!document.filename) {
     throw new Error('Document is missing a file payload.')
   }
@@ -90,11 +91,17 @@ async function extractText(document: DocumentRecord): Promise<string> {
 
   if (extension === '.pdf') {
     const parsed = await pdfParse(buffer)
-    return parsed.text ?? ''
+    return normalizeDocumentToMarkdown({
+      extension: '.pdf',
+      text: parsed.text ?? '',
+    })
   }
 
   if (TEXT_MIME_TYPES.has(extension === '.md' ? 'text/markdown' : 'text/plain') || extension === '.txt' || extension === '.md') {
-    return buffer.toString('utf-8')
+    return normalizeDocumentToMarkdown({
+      extension: extension === '.md' ? '.md' : '.txt',
+      text: buffer.toString('utf-8'),
+    })
   }
 
   throw new Error(`Unsupported document type: ${extension || 'unknown'}`)
@@ -203,7 +210,7 @@ export async function ingestDocument(
   document: DocumentRecord,
   req?: PayloadRequest,
 ): Promise<void> {
-  const rawText = await extractText(document)
+  const rawText = await extractMarkdown(document)
   const chunks = chunkText(rawText)
 
   if (!chunks.length) {

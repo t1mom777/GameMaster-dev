@@ -447,8 +447,8 @@ export function PlayerLibraryManager() {
         </label>
 
         <div className="subtle-note">
-          PDF, Markdown, or plain text. One primary rulebook, multiple supporting books, up to 25 MB
-          each.
+          PDF, Markdown, or plain text. One primary rulebook, multiple supporting books. Larger PDFs are
+          allowed and are normalized to Markdown during indexing for cleaner retrieval.
         </div>
 
         {message && <div className="notice-card">{message}</div>}

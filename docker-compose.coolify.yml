@@ -1,6 +1,7 @@
 services:
   control-plane:
-    image: sc4cksg4w8s8g8cwco48k88s_control-plane:009743ed559f57dada3cc9efb24c40cf55249c90
+    build:
+      context: ./apps/control-plane
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}

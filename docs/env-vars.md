@@ -34,6 +34,7 @@
 | `QDRANT_API_KEY` | no | Qdrant auth if enabled |
 | `OPENAI_API_KEY` | yes for retrieval | Embeddings provider key |
 | `OPENAI_EMBEDDING_MODEL` | yes | Embedding model, default `text-embedding-3-small` |
+| `GM_LIBRARY_UPLOAD_MAX_MB` | no | Player upload ceiling for PDF / Markdown / text books, default `100` |
 
 ## Voice runtime
 
@@ -75,6 +76,7 @@ QDRANT_URL=http://qdrant:6333
 QDRANT_COLLECTION=gm_rulebook_chunks
 OPENAI_API_KEY=...
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+GM_LIBRARY_UPLOAD_MAX_MB=100
 GOOGLE_API_KEY=...
 DEEPGRAM_API_KEY=...
 GOOGLE_CLIENT_ID=...

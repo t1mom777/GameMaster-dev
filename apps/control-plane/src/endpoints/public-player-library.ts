@@ -17,7 +17,7 @@ import { toSlug } from '@/lib/slug'
 import { ingestDocument, markDocumentIndexing, markDocumentIngestError } from '@/lib/document-ingest'
 
 const libraryTitleSchema = z.string().trim().min(2).max(120)
-const MAX_LIBRARY_BYTES = 25 * 1024 * 1024
+const DEFAULT_LIBRARY_UPLOAD_MAX_MB = 100
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.txt', '.md'])
 const ALLOWED_MIME_TYPES = new Set(['application/pdf', 'text/plain', 'text/markdown'])
 
@@ -112,6 +112,18 @@ function fileBaseName(filename: string): string {
   return filename.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
 }
 
+function getLibraryUploadLimitBytes(): number {
+  const configuredLimit = Number(process.env.GM_LIBRARY_UPLOAD_MAX_MB)
+  const maxMb = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : DEFAULT_LIBRARY_UPLOAD_MAX_MB
+  return Math.round(maxMb * 1024 * 1024)
+}
+
+function getLibraryUploadLimitLabel(): string {
+  const configuredLimit = Number(process.env.GM_LIBRARY_UPLOAD_MAX_MB)
+  const maxMb = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : DEFAULT_LIBRARY_UPLOAD_MAX_MB
+  return Number.isInteger(maxMb) ? `${maxMb} MB` : `${maxMb.toFixed(1)} MB`
+}
+
 function validateLibraryFile(file: File): { extension: string; mimetype: string } {
   const extension = path.extname(file.name || '').toLowerCase()
   const mimetype = file.type || (extension === '.pdf' ? 'application/pdf' : 'text/plain')
@@ -120,8 +132,8 @@ function validateLibraryFile(file: File): { extension: string; mimetype: string 
     throw new Error('Upload a PDF, Markdown, or plain text book.')
   }
 
-  if (file.size < 1 || file.size > MAX_LIBRARY_BYTES) {
-    throw new Error('Library uploads must be smaller than 25 MB.')
+  if (file.size < 1 || file.size > getLibraryUploadLimitBytes()) {
+    throw new Error(`Library uploads must be smaller than ${getLibraryUploadLimitLabel()}.`)
   }
 
   return { extension, mimetype }

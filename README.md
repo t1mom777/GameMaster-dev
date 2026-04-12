@@ -31,6 +31,7 @@ The old GM app remains the protected reference system and is not part of this ro
   - one primary rulebook
   - multiple supporting books
   - replace, rename, remove, and include/exclude from active play
+- Uploaded PDFs and text files are normalized into Markdown during ingest before chunking and embedding into Qdrant. The original uploaded file remains unchanged.
 - Active player books are synced into the player’s game session automatically before voice starts.
 - Speaker labeling remains in-session and only appears when multiple human voices are present.
 - Payload admin remains the place for campaigns, worlds, rulebooks, sessions, quotas, runtime defaults, provider visibility, and diagnostics.
