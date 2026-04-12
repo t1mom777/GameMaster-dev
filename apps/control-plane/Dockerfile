@@ -9,16 +9,11 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install only the production dependency graph plus the minimal TypeScript
-# toolchain Next needs to compile the app. This avoids pulling the full
-# test/lint stack into Coolify's constrained build workspace.
+# Install only the production dependency graph. The TypeScript toolchain used
+# by the Next build is intentionally kept in production deps so the image can
+# avoid a second npm install pass in Coolify's constrained build workspace.
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --no-audit --no-fund \
-  && npm install --no-save --no-audit --no-fund \
-    typescript@5.7.3 \
-    @types/node@22.19.9 \
-    @types/react@19.2.14 \
-    @types/react-dom@19.2.3
+RUN npm ci --omit=dev --no-audit --no-fund
 
 
 # Rebuild the source code only when needed
