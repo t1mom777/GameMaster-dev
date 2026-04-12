@@ -5,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 from livekit.agents import Agent, AgentServer, AgentSession, JobContext, JobProcess, RunContext, cli, room_io
 from livekit.agents.llm import function_tool
-from livekit.plugins import deepgram, google, openai, silero
+from livekit.plugins import deepgram, openai, silero
 
 from gm_agent.config import load_settings
 from gm_agent.control_plane import ControlPlaneClient, SessionContext
@@ -26,9 +26,9 @@ server.setup_fnc = prewarm
 
 
 def build_llm(runtime: SessionContext):
-    if runtime.runtime_defaults.llm_provider == "openai":
-        return openai.LLM(model=runtime.runtime_defaults.llm_model or "gpt-4.1-mini")
-    return google.LLM(model=runtime.runtime_defaults.llm_model or "gemini-2.5-flash")
+    if runtime.runtime_defaults.llm_provider != "openai":
+        logger.warning("Gemini runtime is disabled in the slim production worker image; falling back to OpenAI.")
+    return openai.LLM(model=runtime.runtime_defaults.llm_model or "gpt-4.1-mini")
 
 
 def build_stt(runtime: SessionContext):
