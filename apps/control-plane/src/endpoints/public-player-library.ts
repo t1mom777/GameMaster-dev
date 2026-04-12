@@ -14,6 +14,7 @@ import {
 } from '@/lib/player-access'
 import { readPlayerSessionFromHeaders } from '@/lib/player-auth'
 import { toSlug } from '@/lib/slug'
+import { ingestDocument, markDocumentIndexing, markDocumentIngestError } from '@/lib/document-ingest'
 
 const libraryTitleSchema = z.string().trim().min(2).max(120)
 const MAX_LIBRARY_BYTES = 25 * 1024 * 1024
@@ -288,6 +289,41 @@ async function refreshPlayerGameContext(req: PayloadRequest, player: NonNullable
   return libraryResponse(await listPlayerLibrary(req.payload, player))
 }
 
+async function syncSavedPlayerDocument(req: PayloadRequest, documentId: number | string): Promise<void> {
+  try {
+    await markDocumentIndexing(req.payload, documentId, req)
+
+    const savedDocument = await req.payload.findByID({
+      collection: 'documents',
+      id: normalizeCollectionId(documentId),
+      overrideAccess: true,
+      req,
+    } as never)
+
+    await ingestDocument(
+      req.payload,
+      savedDocument as {
+        filename?: string | null
+        id: number | string
+        isActive?: boolean | null
+        isPrimary?: boolean | null
+        kind?: string | null
+        ruleset?: { id?: string | number } | string | number | null
+        session?: { id?: string | number } | string | number | null
+        title?: string | null
+      },
+      req,
+    )
+  } catch (error) {
+    await markDocumentIngestError(
+      req.payload,
+      documentId,
+      libraryErrorMessage(error, 'Unable to index this book right now.'),
+      req,
+    )
+  }
+}
+
 export const publicPlayerLibraryGetEndpoint: Endpoint = {
   path: '/gm/public/player-library',
   method: 'get',
@@ -373,19 +409,27 @@ export const publicPlayerLibrarySaveEndpoint: Endpoint = {
         replacement
           ? await req.payload.update({
               collection: 'documents',
+              context: {
+                skipDocumentSync: true,
+              },
               data: nextData,
               file: payloadFile,
               id: normalizeCollectionId(replacement.id),
               overrideAccess: true,
+              req,
             } as never)
           : await req.payload.create({
               collection: 'documents',
+              context: {
+                skipDocumentSync: true,
+              },
               data: {
                 ...nextData,
                 slug: generatePlayerDocumentSlug(context.player.id, requestedTitle),
               },
               file: payloadFile,
               overrideAccess: true,
+              req,
             } as never)
 
       const savedId = String((saved as { id: number | string }).id)
@@ -393,6 +437,8 @@ export const publicPlayerLibrarySaveEndpoint: Endpoint = {
       if (shouldBePrimary) {
         await demoteOtherPrimaryBooks(req, context.player.id, savedId)
       }
+
+      await syncSavedPlayerDocument(req, savedId)
 
       return Response.json(await refreshPlayerGameContext(req, context.player))
     } catch (error) {
