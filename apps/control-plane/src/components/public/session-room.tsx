@@ -14,6 +14,8 @@ import {
 import { ParticipantKind, RemoteTrack, Room, RoomEvent, Track } from 'livekit-client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { readApiPayload } from './api-response'
+
 type JoinBundle = {
   roomName: string
   serverUrl: string
@@ -232,12 +234,12 @@ export function SessionRoom(props: SessionRoomProps) {
         },
       )
 
+      const payload = await readApiPayload<{ mappings?: PersistedMapping[] }>(
+        response,
+        'Unable to load speaker labels.',
+      )
       if (!response.ok) {
-        throw new Error('Unable to load speaker labels.')
-      }
-
-      const payload = (await response.json()) as {
-        mappings?: PersistedMapping[]
+        throw new Error(payload.message || 'Unable to load speaker labels.')
       }
 
       setPersistedMappings(
@@ -396,7 +398,7 @@ export function SessionRoom(props: SessionRoomProps) {
         method: 'POST',
       })
 
-      const payload = (await response.json()) as JoinBundle & { message?: string }
+      const payload = await readApiPayload<JoinBundle>(response, 'Unable to start this game session.')
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to start this game session.')
       }
@@ -436,12 +438,14 @@ export function SessionRoom(props: SessionRoomProps) {
         method: 'POST',
       })
 
+      const payload = await readApiPayload<{ mappings?: PersistedMapping[] }>(
+        response,
+        'Unable to save player labels.',
+      )
       if (!response.ok) {
-        const payload = (await response.json()) as { message?: string }
         throw new Error(payload.message || 'Unable to save player labels.')
       }
 
-      const payload = (await response.json()) as { mappings?: PersistedMapping[] }
       setPersistedMappings(
         Object.fromEntries(
           (payload.mappings || []).map((mapping) => [mapping.livekitIdentity, mapping]),

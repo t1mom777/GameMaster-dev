@@ -227,6 +227,10 @@ button {
   gap: 12px;
 }
 
+.hero__lede--tight {
+  margin: 0;
+}
+
 .hero__steps {
   display: grid;
   gap: 14px;
@@ -280,6 +284,40 @@ button {
   margin: 0;
 }
 
+.hero__status-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero__status-grid div,
+.game-card__facts div,
+.library-metrics div,
+.session-hero__facts div {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+}
+
+.hero__status-grid span,
+.game-card__facts span,
+.library-metrics span,
+.session-hero__facts span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.hero__status-grid strong,
+.game-card__facts strong,
+.library-metrics strong,
+.session-hero__facts strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
 .hero__checklist,
 .auth-list,
 .info-list,
@@ -293,6 +331,7 @@ button {
 .section-block {
   display: grid;
   gap: 20px;
+  scroll-margin-top: 120px;
 }
 
 .section-block--split {

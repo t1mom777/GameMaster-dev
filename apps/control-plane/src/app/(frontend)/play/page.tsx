@@ -48,16 +48,27 @@ export default async function PlayPage() {
         </div>
 
         <div className="play-hero__actions">
-          <Link className="button button--primary" href={`/session/${gameSession.slug}`}>
-            {gameSession.status === 'live' ? 'Continue with VAD' : 'Start with VAD'}
-          </Link>
+          {primaryRulebook ? (
+            <Link className="button button--primary" href={`/session/${gameSession.slug}`}>
+              {gameSession.status === 'live' ? 'Continue with VAD' : 'Start with VAD'}
+            </Link>
+          ) : (
+            <a className="button button--primary" href="#library">
+              Upload a primary rulebook
+            </a>
+          )}
+          {!primaryRulebook && (
+            <Link className="button button--ghost" href={`/session/${gameSession.slug}`}>
+              Open voice anyway
+            </Link>
+          )}
           <Link className="button button--ghost" href="/">
             Back to home
           </Link>
         </div>
       </section>
 
-      <section className="section-block section-block--split">
+      <section className="section-block section-block--split" id="library">
         <article className="game-card">
           <div className="game-card__header">
             <div>

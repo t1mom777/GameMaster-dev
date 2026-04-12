@@ -20,6 +20,11 @@ type DocumentRecord = {
   title?: string | null
 }
 
+type QueueDocumentIngestOptions = {
+  alreadyMarkedIndexing?: boolean
+  req?: PayloadRequest
+}
+
 const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown'])
 
 type DocumentStatusPatch = {
@@ -153,6 +158,22 @@ async function patchDocumentRecord(
   })
 }
 
+async function loadDocumentRecord(
+  payload: Payload,
+  documentId: number | string,
+  req?: PayloadRequest,
+): Promise<DocumentRecord> {
+  const document = await payload.findByID({
+    collection: 'documents',
+    depth: 0,
+    id: normalizeDocumentId(documentId),
+    overrideAccess: true,
+    req,
+  } as never)
+
+  return document as DocumentRecord
+}
+
 export async function markDocumentIndexing(
   payload: Payload,
   documentId: number | string,
@@ -262,4 +283,30 @@ export async function ingestDocument(
     },
     req,
   )
+}
+
+export function queueDocumentIngest(
+  payload: Payload,
+  documentId: number | string,
+  options?: QueueDocumentIngestOptions,
+): void {
+  setImmediate(() => {
+    void (async () => {
+      try {
+        if (!options?.alreadyMarkedIndexing) {
+          await markDocumentIndexing(payload, documentId, options?.req)
+        }
+
+        const document = await loadDocumentRecord(payload, documentId, options?.req)
+        await ingestDocument(payload, document, options?.req)
+      } catch (error) {
+        await markDocumentIngestError(
+          payload,
+          documentId,
+          error instanceof Error ? error.message : 'Unable to index this book right now.',
+          options?.req,
+        )
+      }
+    })()
+  })
 }

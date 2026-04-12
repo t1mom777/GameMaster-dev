@@ -31,6 +31,12 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
       : searchParams?.auth === 'google-failed'
         ? 'We could not finish sign-in. Try again or use a different Google account.'
         : null
+  const heroLede = playerSession
+    ? 'Your player identity, book library, and current game are ready in one place. Open the session when you want to continue with voice.'
+    : 'Bring your own rulebook, keep one persistent game, and move from sign-in to voice play without operator-style setup screens.'
+  const signedInSummary = playerSession
+    ? `${primaryBook ? `${primaryBook.title} is your primary rulebook.` : 'Your primary rulebook is not set yet.'} ${activeBooks.length} active book${activeBooks.length === 1 ? '' : 's'} will follow you into play.`
+    : null
 
   return (
     <main className="surface surface--landing">
@@ -38,7 +44,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         <div className="hero__copy">
           <p className="eyebrow">Voice-first tabletop play</p>
           <h1>{siteSettings.siteTitle}</h1>
-          <p className="hero__lede">{siteSettings.publicDescription}</p>
+          <p className="hero__lede">{heroLede}</p>
 
           <div className="hero__actions">
             {playerSession ? (
@@ -51,8 +57,8 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
               </Link>
             )}
 
-            <Link className="button button--ghost" href={playerSession ? '/play' : '/login'}>
-              Start playing
+            <Link className="button button--ghost" href={playerSession ? '/play#library' : '#flow'}>
+              {playerSession ? 'Review my library' : 'See how it works'}
             </Link>
           </div>
 
@@ -75,18 +81,38 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         </div>
 
         <aside className="hero__panel">
-          <p className="eyebrow">Product flow</p>
-          <h2>Personal library, persistent game, voice-first play</h2>
-          <ul className="hero__checklist">
-            <li>Google SSO before any playable presence</li>
-            <li>Your library stays attached to one player identity</li>
-            <li>Primary rulebook plus supporting books</li>
-            <li>Speaker labeling only when more than one human voice is present</li>
-          </ul>
+          <p className="eyebrow">{playerSession ? 'Player status' : 'Product flow'}</p>
+          <h2>{playerSession ? 'You only need one player identity' : 'Personal library, persistent game, voice-first play'}</h2>
+          {playerSession ? (
+            <>
+              <p className="hero__lede hero__lede--tight">{signedInSummary}</p>
+              <div className="hero__status-grid">
+                <div>
+                  <span>Primary</span>
+                  <strong>{primaryBook?.title || 'Missing'}</strong>
+                </div>
+                <div>
+                  <span>Active books</span>
+                  <strong>{activeBooks.length}</strong>
+                </div>
+                <div>
+                  <span>Game state</span>
+                  <strong>{playerGame?.status === 'live' ? 'Live' : 'Ready'}</strong>
+                </div>
+              </div>
+            </>
+          ) : (
+            <ul className="hero__checklist">
+              <li>Google SSO before any playable presence</li>
+              <li>Your library stays attached to one player identity</li>
+              <li>Primary rulebook plus supporting books</li>
+              <li>Speaker labeling only when more than one human voice is present</li>
+            </ul>
+          )}
         </aside>
       </section>
 
-      <section className="section-block">
+      <section className="section-block" id="flow">
         <div className="section-heading">
           <div>
             <p className="eyebrow">Your game</p>

@@ -1,10 +1,8 @@
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getPayload } from 'payload'
 
 import { isGooglePlayerAuthConfigured, readPlayerSessionFromCookieStore, sanitizeReturnTo } from '@/lib/player-auth'
-import config from '@/payload.config'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,10 +17,6 @@ export default async function LoginPage(props: {
     redirect(returnTo === '/' ? '/play' : returnTo)
   }
 
-  const payload = await getPayload({ config })
-  const siteSettings = await payload.findGlobal({
-    slug: 'site-settings',
-  })
   const googlePlayerAuthConfigured = isGooglePlayerAuthConfigured()
   const authNotice =
     searchParams?.auth === 'google-state'
@@ -38,8 +32,8 @@ export default async function LoginPage(props: {
           <p className="eyebrow">Player sign-in</p>
           <h1>Enter the table with your Google identity</h1>
           <p>
-            {siteSettings.publicDescription ||
-              'Sign in once, keep your player presence consistent, and move straight into voice play.'}
+            Sign in once, keep your player presence consistent, and move straight into your own game,
+            books, and voice setup.
           </p>
 
           <ul className="auth-list">

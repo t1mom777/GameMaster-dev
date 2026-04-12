@@ -21,7 +21,10 @@ const bodyFont = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  description: 'Voice-first tabletop adventures with a private player library and a hidden admin control plane.',
+  description: 'Voice-first tabletop adventures with a private player library, persistent game state, and hidden admin controls.',
+  icons: {
+    icon: '/icon.svg',
+  },
   title: 'GameMaster',
 }
 

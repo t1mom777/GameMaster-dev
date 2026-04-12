@@ -3,9 +3,7 @@ import type { CollectionConfig } from 'payload'
 
 import { hasAdminSession } from '@/lib/access'
 import {
-  ingestDocument,
-  markDocumentIngestError,
-  markDocumentIndexing,
+  queueDocumentIngest,
   removeDocumentVectors,
 } from '@/lib/document-ingest'
 import { toSlug } from '@/lib/slug'
@@ -144,18 +142,7 @@ export const Documents: CollectionConfig = {
           return doc
         }
 
-        await markDocumentIndexing(req.payload, doc.id, req)
-
-        try {
-          await ingestDocument(req.payload, doc, req)
-        } catch (error) {
-          await markDocumentIngestError(
-            req.payload,
-            doc.id,
-            error instanceof Error ? error.message : 'Unknown ingest error',
-            req,
-          )
-        }
+        queueDocumentIngest(req.payload, doc.id, { req })
 
         return doc
       },

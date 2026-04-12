@@ -14,7 +14,7 @@ import {
 } from '@/lib/player-access'
 import { readPlayerSessionFromHeaders } from '@/lib/player-auth'
 import { toSlug } from '@/lib/slug'
-import { ingestDocument, markDocumentIndexing, markDocumentIngestError } from '@/lib/document-ingest'
+import { markDocumentIndexing, queueDocumentIngest } from '@/lib/document-ingest'
 
 const libraryTitleSchema = z.string().trim().min(2).max(120)
 const DEFAULT_LIBRARY_UPLOAD_MAX_MB = 100
@@ -301,41 +301,6 @@ async function refreshPlayerGameContext(req: PayloadRequest, player: NonNullable
   return libraryResponse(await listPlayerLibrary(req.payload, player))
 }
 
-async function syncSavedPlayerDocument(req: PayloadRequest, documentId: number | string): Promise<void> {
-  try {
-    await markDocumentIndexing(req.payload, documentId, req)
-
-    const savedDocument = await req.payload.findByID({
-      collection: 'documents',
-      id: normalizeCollectionId(documentId),
-      overrideAccess: true,
-      req,
-    } as never)
-
-    await ingestDocument(
-      req.payload,
-      savedDocument as {
-        filename?: string | null
-        id: number | string
-        isActive?: boolean | null
-        isPrimary?: boolean | null
-        kind?: string | null
-        ruleset?: { id?: string | number } | string | number | null
-        session?: { id?: string | number } | string | number | null
-        title?: string | null
-      },
-      req,
-    )
-  } catch (error) {
-    await markDocumentIngestError(
-      req.payload,
-      documentId,
-      libraryErrorMessage(error, 'Unable to index this book right now.'),
-      req,
-    )
-  }
-}
-
 export const publicPlayerLibraryGetEndpoint: Endpoint = {
   path: '/gm/public/player-library',
   method: 'get',
@@ -450,7 +415,11 @@ export const publicPlayerLibrarySaveEndpoint: Endpoint = {
         await demoteOtherPrimaryBooks(req, context.player.id, savedId)
       }
 
-      await syncSavedPlayerDocument(req, savedId)
+      await markDocumentIndexing(req.payload, savedId, req)
+      queueDocumentIngest(req.payload, savedId, {
+        alreadyMarkedIndexing: true,
+        req,
+      })
 
       return Response.json(await refreshPlayerGameContext(req, context.player))
     } catch (error) {

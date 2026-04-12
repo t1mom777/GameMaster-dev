@@ -3,6 +3,8 @@
 import { BookCopy, LoaderCircle, PencilLine, ShieldPlus, Star, Trash2, Upload } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
+import { readApiPayload } from './api-response'
+
 type LibraryBook = {
   filename: string
   id: string
@@ -31,7 +33,7 @@ function statusLabel(status: string): string {
     case 'error':
       return 'Needs attention'
     default:
-      return 'Uploading'
+      return 'Queued'
   }
 }
 
@@ -82,7 +84,7 @@ export function PlayerLibraryManager() {
         cache: 'no-store',
       })
 
-      const payload = (await response.json()) as LibraryResponse & { message?: string }
+      const payload = await readApiPayload<LibraryResponse>(response, 'Unable to load your game library.')
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to load your game library.')
       }
@@ -143,7 +145,10 @@ export function PlayerLibraryManager() {
         method: 'POST',
       })
 
-      const payload = (await response.json()) as LibraryResponse & { message?: string }
+      const payload = await readApiPayload<LibraryResponse>(
+        response,
+        'Unable to update your library.',
+      )
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to update your library.')
       }
@@ -185,7 +190,7 @@ export function PlayerLibraryManager() {
         method: 'PATCH',
       })
 
-      const payload = (await response.json()) as LibraryResponse & { message?: string }
+      const payload = await readApiPayload<LibraryResponse>(response, 'Unable to update the book.')
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to update the book.')
       }
@@ -217,7 +222,7 @@ export function PlayerLibraryManager() {
         method: 'DELETE',
       })
 
-      const payload = (await response.json()) as LibraryResponse & { message?: string }
+      const payload = await readApiPayload<LibraryResponse>(response, 'Unable to remove the book.')
       if (!response.ok) {
         throw new Error(payload.message || 'Unable to remove the book.')
       }
@@ -448,7 +453,7 @@ export function PlayerLibraryManager() {
 
         <div className="subtle-note">
           PDF, Markdown, or plain text. One primary rulebook, multiple supporting books. Larger PDFs are
-          allowed and are normalized to Markdown during indexing for cleaner retrieval.
+          accepted, then normalized to Markdown during background indexing for cleaner retrieval.
         </div>
 
         {message && <div className="notice-card">{message}</div>}
