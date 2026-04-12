@@ -15,8 +15,6 @@ import { ProviderConnections } from './collections/ProviderConnections'
 import { Rulesets } from './collections/Rulesets'
 import { Worlds } from './collections/Worlds'
 import { adminReindexDocumentEndpoint } from './endpoints/admin-reindex-document'
-import { adminDebugPlayerWriteEndpoint } from './endpoints/admin-debug-player-write'
-import { adminDebugPlayerLibrarySaveEndpoint } from './endpoints/admin-debug-player-library-save'
 import { healthEndpoint } from './endpoints/health'
 import { internalBootstrapEndpoint } from './endpoints/internal-bootstrap'
 import { publicJoinEndpoint } from './endpoints/public-join'
@@ -73,8 +71,6 @@ export default buildConfig({
     runtimeSessionEndpoint,
     runtimeRetrieveEndpoint,
     adminReindexDocumentEndpoint,
-    adminDebugPlayerWriteEndpoint,
-    adminDebugPlayerLibrarySaveEndpoint,
   ],
   globals: [RuntimeDefaults, SiteSettings],
   routes: {
