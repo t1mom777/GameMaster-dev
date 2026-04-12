@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from livekit.agents import Agent, AgentServer, AgentSession, JobContext, JobProcess, RunContext, cli, room_io
 from livekit.agents.llm import function_tool
 from livekit.plugins import deepgram, google, openai, silero
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from gm_agent.config import load_settings
 from gm_agent.control_plane import ControlPlaneClient, SessionContext
@@ -103,9 +102,6 @@ async def entrypoint(ctx: JobContext) -> None:
         stt=build_stt(runtime),
         llm=build_llm(runtime),
         tts=build_tts(runtime),
-        turn_handling={
-            "turn_detection": MultilingualModel(),
-        },
         preemptive_generation=True,
     )
 
