@@ -1,5 +1,13 @@
+import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-export function GET(request: Request) {
-  return NextResponse.redirect(new URL('/icon.svg', request.url), 307)
+export async function GET() {
+  const requestHeaders = await headers()
+  const protocol = requestHeaders.get('x-forwarded-proto') || 'https'
+  const host =
+    requestHeaders.get('x-forwarded-host') ||
+    requestHeaders.get('host') ||
+    'game.dima.click'
+
+  return NextResponse.redirect(`${protocol}://${host}/icon.svg`, 307)
 }
