@@ -1,9 +1,11 @@
 import type { Endpoint } from 'payload'
 
 import { requireAdmin } from '@/lib/access'
+import { ingestDocument, markDocumentIndexing, markDocumentIngestError } from '@/lib/document-ingest'
 import {
   ensurePlayerGameSession,
   listPlayerLibrary,
+  normalizeCollectionId,
   syncPlayerPrimaryRulebookPointer,
 } from '@/lib/player-access'
 
@@ -70,6 +72,9 @@ export const adminDebugPlayerLibrarySaveEndpoint: Endpoint = {
       const fileData = Buffer.from('Core rules\n\nAttack rolls use a d20.', 'utf8')
       const document = (await req.payload.create({
         collection: 'documents',
+        context: {
+          skipDocumentSync: true,
+        },
         data: {
           title: 'Debug Core Book',
           slug: `debug-core-${suffix}`,
@@ -88,10 +93,17 @@ export const adminDebugPlayerLibrarySaveEndpoint: Endpoint = {
           size: fileData.byteLength,
         },
         overrideAccess: true,
+        req,
       } as never)) as {
         filename?: string | null
         id: number | string
+        isActive?: boolean | null
+        isPrimary?: boolean | null
+        kind?: string | null
+        ruleset?: { id?: string | number } | string | number | null
+        session?: { id?: string | number } | string | number | null
         status?: string | null
+        title?: string | null
       }
 
       documentId = document.id
@@ -101,6 +113,36 @@ export const adminDebugPlayerLibrarySaveEndpoint: Endpoint = {
         phase: 'document.create',
         status: document.status,
       })
+
+      await markDocumentIndexing(req.payload, document.id, req)
+      phases.push({ phase: 'document.indexing', documentId })
+
+      const savedDocument = (await req.payload.findByID({
+        collection: 'documents',
+        id: normalizeCollectionId(document.id),
+        overrideAccess: true,
+        req,
+      } as never)) as typeof document
+
+      phases.push({
+        documentId,
+        filename: savedDocument.filename,
+        phase: 'document.findByID',
+        status: savedDocument.status,
+      })
+
+      try {
+        await ingestDocument(req.payload, savedDocument, req)
+        phases.push({ documentId, phase: 'document.ingest' })
+      } catch (error) {
+        await markDocumentIngestError(
+          req.payload,
+          document.id,
+          error instanceof Error ? error.message : 'Unknown ingest error',
+          req,
+        )
+        throw error
+      }
 
       const library = await listPlayerLibrary(req.payload, {
         displayName: player.displayName,
