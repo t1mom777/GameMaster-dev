@@ -32,6 +32,4 @@ flowchart TD
 
 ## Hardening still needed before cutover
 
-- production LiveKit config instead of `--dev`
-- TURN/ICE hardening for browsers on real networks
 - richer transcript persistence back into the control plane

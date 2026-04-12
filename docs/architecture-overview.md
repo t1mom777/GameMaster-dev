@@ -62,6 +62,5 @@ Replaced:
 
 Deferred until cutover hardening:
 
-- production LiveKit TURN/ICE tuning
 - richer multiplayer transcript persistence
 - full player account auth beyond guest-first room join
