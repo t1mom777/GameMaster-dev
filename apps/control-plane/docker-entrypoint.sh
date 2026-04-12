@@ -1,7 +1,6 @@
 #!/bin/sh
 set -eu
 
-npm run payload -- migrate
 HOSTNAME="${HOSTNAME:-0.0.0.0}" node server.js &
 SERVER_PID=$!
 
@@ -11,6 +10,6 @@ cleanup() {
 
 trap cleanup INT TERM
 
-node src/scripts/bootstrap-http.mjs
+node bootstrap-http.mjs
 
 wait "$SERVER_PID"
