@@ -95,6 +95,8 @@ services:
     labels:
       - "traefik.http.services.http-0-sc4cksg4w8s8g8cwco48k88s-livekit.loadbalancer.server.port=7880"
       - "traefik.http.services.https-0-sc4cksg4w8s8g8cwco48k88s-livekit.loadbalancer.server.port=7880"
+      - "traefik.http.routers.http-0-sc4cksg4w8s8g8cwco48k88s-livekit.service=http-0-sc4cksg4w8s8g8cwco48k88s-livekit"
+      - "traefik.http.routers.https-0-sc4cksg4w8s8g8cwco48k88s-livekit.service=https-0-sc4cksg4w8s8g8cwco48k88s-livekit"
     ports:
       - "7880:7880"
       - "7881:7881"
