@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 
 from dotenv import load_dotenv
-from livekit.agents import Agent, AgentServer, AgentSession, JobContext, JobProcess, RunContext, cli, room_io
+from livekit.agents import Agent, AgentServer, AgentSession, JobContext, RunContext, cli, room_io
 from livekit.agents.llm import function_tool
-from livekit.plugins import deepgram, openai, silero
+from livekit.plugins import deepgram, openai
 
 from gm_agent.config import load_settings
 from gm_agent.control_plane import ControlPlaneClient, SessionContext
@@ -16,13 +16,6 @@ logger.setLevel(logging.INFO)
 load_dotenv()
 settings = load_settings()
 server = AgentServer()
-
-
-def prewarm(proc: JobProcess) -> None:
-    proc.userdata["vad"] = silero.VAD.load()
-
-
-server.setup_fnc = prewarm
 
 
 def build_llm(runtime: SessionContext):
@@ -98,10 +91,10 @@ async def entrypoint(ctx: JobContext) -> None:
     runtime = await control_plane.load_session_context(ctx.room.name)
 
     session = AgentSession(
-        vad=ctx.proc.userdata["vad"],
         stt=build_stt(runtime),
         llm=build_llm(runtime),
         tts=build_tts(runtime),
+        turn_detection="stt",
         preemptive_generation=True,
     )
 
