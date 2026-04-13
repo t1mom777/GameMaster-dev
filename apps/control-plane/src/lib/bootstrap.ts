@@ -283,6 +283,77 @@ export async function ensureSchemaRepairs(payload: Payload) {
   await db.execute({
     drizzle: db.drizzle,
     sql: sql`
+      CREATE TABLE IF NOT EXISTS player_mappings (
+        id serial PRIMARY KEY,
+        mapping_key text,
+        session_id integer,
+        livekit_identity text,
+        participant_label text,
+        mapped_name text,
+        is_confirmed boolean DEFAULT true,
+        confirmed_by_id integer,
+        speaking_notes text,
+        last_confirmed_at timestamp with time zone,
+        created_at timestamp with time zone DEFAULT now(),
+        updated_at timestamp with time zone DEFAULT now()
+      )
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE player_mappings
+      ADD COLUMN IF NOT EXISTS mapping_key text,
+      ADD COLUMN IF NOT EXISTS session_id integer,
+      ADD COLUMN IF NOT EXISTS livekit_identity text,
+      ADD COLUMN IF NOT EXISTS participant_label text,
+      ADD COLUMN IF NOT EXISTS mapped_name text,
+      ADD COLUMN IF NOT EXISTS is_confirmed boolean DEFAULT true,
+      ADD COLUMN IF NOT EXISTS confirmed_by_id integer,
+      ADD COLUMN IF NOT EXISTS speaking_notes text,
+      ADD COLUMN IF NOT EXISTS last_confirmed_at timestamp with time zone,
+      ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now()
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE INDEX IF NOT EXISTS player_mappings_session_id_idx
+      ON player_mappings (session_id)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE INDEX IF NOT EXISTS player_mappings_confirmed_by_id_idx
+      ON player_mappings (confirmed_by_id)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE INDEX IF NOT EXISTS player_mappings_livekit_identity_idx
+      ON player_mappings (livekit_identity)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS player_mappings_mapping_key_unique_idx
+      ON player_mappings (mapping_key)
+      WHERE mapping_key IS NOT NULL
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
       ALTER TABLE documents
       ADD COLUMN IF NOT EXISTS owner_player_id integer
     `,

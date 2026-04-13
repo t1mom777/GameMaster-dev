@@ -151,6 +151,7 @@ export function SessionRoom(props: SessionRoomProps) {
   const [mappingDrafts, setMappingDrafts] = useState<Record<string, string>>({})
   const [isLoadingMappings, setIsLoadingMappings] = useState(false)
   const [isSavingMappings, setIsSavingMappings] = useState(false)
+  const [loadedMappingsRosterKey, setLoadedMappingsRosterKey] = useState('')
   const [mappingStatus, setMappingStatus] = useState<string | null>(null)
   const [acknowledgedRosterKey, setAcknowledgedRosterKey] = useState('')
   const roomRef = useRef<Room | null>(null)
@@ -268,6 +269,20 @@ export function SessionRoom(props: SessionRoomProps) {
   }, [acknowledgedRosterKey, humanParticipants.length, isConnected, rosterKey])
 
   useEffect(() => {
+    if (
+      !isConnected ||
+      humanParticipants.length < 2 ||
+      !rosterKey ||
+      rosterKey === loadedMappingsRosterKey ||
+      isLoadingMappings
+    ) {
+      return
+    }
+
+    void loadMappings(rosterKey)
+  }, [humanParticipants.length, isConnected, isLoadingMappings, loadedMappingsRosterKey, rosterKey])
+
+  useEffect(() => {
     if (!isConnected || humanParticipants.length > 1 || !rosterKey) {
       return
     }
@@ -278,7 +293,7 @@ export function SessionRoom(props: SessionRoomProps) {
     }
   }, [humanParticipants.length, isConnected, rosterKey, step])
 
-  async function loadMappings() {
+  async function loadMappings(targetRosterKey = '') {
     setIsLoadingMappings(true)
 
     try {
@@ -302,6 +317,7 @@ export function SessionRoom(props: SessionRoomProps) {
           (payload.mappings || []).map((mapping) => [mapping.livekitIdentity, mapping]),
         ),
       )
+      setLoadedMappingsRosterKey(targetRosterKey || rosterKey)
     } catch (mappingError) {
       setMappingStatus(
         mappingError instanceof Error ? mappingError.message : 'Unable to load player labels.',
@@ -400,6 +416,7 @@ export function SessionRoom(props: SessionRoomProps) {
       setParticipantRoster([])
       setStep('preflight')
       setJoinBundle(null)
+      setLoadedMappingsRosterKey('')
       setAcknowledgedRosterKey('')
     })
 
@@ -415,7 +432,6 @@ export function SessionRoom(props: SessionRoomProps) {
     }
 
     const nextRoster = syncParticipants(room)
-    await loadMappings()
     const nextHumanParticipants = nextRoster.filter((participant) => !participant.isAgent)
     const nextRosterKey = buildRosterKey(nextRoster)
 
@@ -538,6 +554,7 @@ export function SessionRoom(props: SessionRoomProps) {
     setParticipantRoster([])
     setPersistedMappings({})
     setMappingDrafts({})
+    setLoadedMappingsRosterKey('')
     setMappingStatus(null)
     setAcknowledgedRosterKey('')
     setStep('preflight')
