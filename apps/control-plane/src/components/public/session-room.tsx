@@ -51,6 +51,22 @@ type PersistedMapping = {
 const AUDIO_STORAGE_KEY = 'gm-preferred-mic'
 const NAME_STORAGE_KEY = 'gm-player-name'
 
+type LegacyCompatibleRoom = Room & {
+  engine?: {
+    __gmLegacyRtcPathForced?: boolean
+    client?: {
+      useV0SignalPath?: boolean
+    }
+    join?: (
+      url: string,
+      token: string,
+      opts: unknown,
+      abortSignal?: AbortSignal,
+      useV0Path?: boolean,
+    ) => Promise<unknown>
+  }
+}
+
 function buildParticipantRoster(room: Room, playerName: string, fallbackTitle: string): ParticipantEntry[] {
   const nextRoster: ParticipantEntry[] = [
     {
@@ -100,6 +116,24 @@ function formatSessionError(error: unknown, fallback: string): string {
   }
 
   return message
+}
+
+function forceLegacyRtcSignalPath(room: Room) {
+  const legacyRoom = room as LegacyCompatibleRoom
+  const engine = legacyRoom.engine
+  if (!engine?.join || engine.__gmLegacyRtcPathForced) {
+    return
+  }
+
+  const originalJoin = engine.join.bind(engine) as LegacyCompatibleRoom['engine']['join']
+  engine.join = ((url, token, opts, abortSignal) =>
+    originalJoin?.(url, token, opts, abortSignal, true)) as LegacyCompatibleRoom['engine']['join']
+
+  if (engine.client) {
+    ;(engine.client as { useV0SignalPath?: boolean }).useV0SignalPath = true
+  }
+
+  engine.__gmLegacyRtcPathForced = true
 }
 
 export function SessionRoom(props: SessionRoomProps) {
@@ -344,6 +378,7 @@ export function SessionRoom(props: SessionRoomProps) {
 
   async function connectToRoom(bundle: JoinBundle) {
     const room = new Room()
+    forceLegacyRtcSignalPath(room)
     roomRef.current = room
 
     room.on(RoomEvent.ParticipantConnected, () => syncParticipants(room))
