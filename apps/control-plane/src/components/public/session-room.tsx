@@ -81,6 +81,27 @@ function buildRosterKey(participants: ParticipantEntry[]): string {
     .join('|')
 }
 
+function formatSessionError(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) {
+    return fallback
+  }
+
+  const message = error.message.trim()
+  if (!message) {
+    return fallback
+  }
+
+  if (/unexpected token .*bad gateway/i.test(message) || /\bbad gateway\b/i.test(message)) {
+    return 'The realtime voice service returned a gateway error while starting. Wait a few seconds, then try again.'
+  }
+
+  if (/could not establish pc connection/i.test(message)) {
+    return 'The browser could not establish the realtime voice connection. Refresh the page and try again.'
+  }
+
+  return message
+}
+
 export function SessionRoom(props: SessionRoomProps) {
   const [playerName, setPlayerName] = useState(props.initialPlayerName || '')
   const [joinBundle, setJoinBundle] = useState<JoinBundle | null>(null)
@@ -406,7 +427,7 @@ export function SessionRoom(props: SessionRoomProps) {
       window.localStorage.setItem(NAME_STORAGE_KEY, playerName)
       await connectToRoom(payload)
     } catch (joinError) {
-      setError(joinError instanceof Error ? joinError.message : 'Unable to start this game session.')
+      setError(formatSessionError(joinError, 'Unable to start this game session.'))
       setStep('preflight')
     }
   }

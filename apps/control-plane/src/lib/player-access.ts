@@ -1,5 +1,6 @@
 import type { Payload } from 'payload'
 
+import { queueDocumentIngest } from '@/lib/document-ingest'
 import type { PlayerAuthSession } from '@/lib/player-auth'
 import { toSlug } from '@/lib/slug'
 
@@ -52,6 +53,14 @@ export type LibraryDocumentRecord = {
   status?: string | null
   title: string
   updatedAt?: string | null
+}
+
+function shouldResumeDocumentIngest(document: LibraryDocumentRecord): boolean {
+  if (!document.filename) {
+    return false
+  }
+
+  return document.status === 'uploaded' || document.status === 'indexing'
 }
 
 function normalizeId(input: number | string): string {
@@ -320,9 +329,26 @@ export async function listPlayerLibrary(
     },
   })
 
-  return result.docs
+  const library = result.docs
     .map((doc) => toLibraryDocumentRecord(doc))
     .filter((doc): doc is LibraryDocumentRecord => Boolean(doc))
+
+  for (const document of library) {
+    if (!shouldResumeDocumentIngest(document)) {
+      continue
+    }
+
+    queueDocumentIngest(payload, document.id, {
+      alreadyMarkedIndexing: document.status === 'indexing',
+    })
+
+    if (document.status !== 'indexing') {
+      document.status = 'indexing'
+      document.ingestError = ''
+    }
+  }
+
+  return library
     .sort((left, right) => {
       if (left.isPrimary !== right.isPrimary) {
         return left.isPrimary ? -1 : 1

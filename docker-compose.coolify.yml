@@ -37,7 +37,8 @@ services:
       - "3000"
 
   gm-agent:
-    image: sc4cksg4w8s8g8cwco48k88s_gm-agent:aada0e9e983a6dad4a01602745298b5cfb64e3ba
+    build:
+      context: ./services/gm-agent
     environment:
       LIVEKIT_URL: ${LIVEKIT_HOST}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}

@@ -142,7 +142,7 @@ export const Documents: CollectionConfig = {
           return doc
         }
 
-        queueDocumentIngest(req.payload, doc.id, { req })
+        queueDocumentIngest(req.payload, doc.id)
 
         return doc
       },

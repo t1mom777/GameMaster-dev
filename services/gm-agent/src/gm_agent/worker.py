@@ -30,16 +30,31 @@ def build_stt(runtime: SessionContext):
     return deepgram.STT(model=runtime.runtime_defaults.stt_model or "nova-3", language="multi")
 
 
+def build_deepgram_tts_model(runtime: SessionContext) -> str:
+    configured_model = (runtime.runtime_defaults.tts_model or "").strip()
+    configured_voice = (runtime.runtime_defaults.tts_voice or "").strip()
+
+    if configured_model and configured_voice and configured_voice not in configured_model:
+        return f"{configured_model}-{configured_voice}"
+
+    return configured_model or configured_voice or "aura-2-thalia-en"
+
+
 def build_tts(runtime: SessionContext):
     if runtime.runtime_defaults.tts_provider == "openai":
         return openai.TTS(
             model=runtime.runtime_defaults.tts_model or "gpt-4o-mini-tts",
             voice=runtime.runtime_defaults.tts_voice or "alloy",
         )
-    return deepgram.TTS(
-        model=runtime.runtime_defaults.tts_model or "aura-2",
-        voice=runtime.runtime_defaults.tts_voice or "thalia-en",
-    )
+
+    try:
+        return deepgram.TTS(model=build_deepgram_tts_model(runtime))
+    except TypeError:
+        logger.warning("Deepgram TTS init failed; falling back to OpenAI TTS.")
+        return openai.TTS(
+            model="gpt-4o-mini-tts",
+            voice=runtime.runtime_defaults.tts_voice or "alloy",
+        )
 
 
 class GameMasterAgent(Agent):

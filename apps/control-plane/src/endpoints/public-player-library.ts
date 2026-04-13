@@ -418,7 +418,6 @@ export const publicPlayerLibrarySaveEndpoint: Endpoint = {
       await markDocumentIndexing(req.payload, savedId, req)
       queueDocumentIngest(req.payload, savedId, {
         alreadyMarkedIndexing: true,
-        req,
       })
 
       return Response.json(await refreshPlayerGameContext(req, context.player))

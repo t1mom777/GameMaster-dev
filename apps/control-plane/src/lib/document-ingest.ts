@@ -22,10 +22,10 @@ type DocumentRecord = {
 
 type QueueDocumentIngestOptions = {
   alreadyMarkedIndexing?: boolean
-  req?: PayloadRequest
 }
 
 const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown'])
+const inflightDocumentIngests = new Set<string>()
 
 type DocumentStatusPatch = {
   chunkCount?: number | null
@@ -290,22 +290,30 @@ export function queueDocumentIngest(
   documentId: number | string,
   options?: QueueDocumentIngestOptions,
 ): void {
+  const inflightKey = String(documentId)
+  if (inflightDocumentIngests.has(inflightKey)) {
+    return
+  }
+
+  inflightDocumentIngests.add(inflightKey)
+
   setImmediate(() => {
     void (async () => {
       try {
         if (!options?.alreadyMarkedIndexing) {
-          await markDocumentIndexing(payload, documentId, options?.req)
+          await markDocumentIndexing(payload, documentId)
         }
 
-        const document = await loadDocumentRecord(payload, documentId, options?.req)
-        await ingestDocument(payload, document, options?.req)
+        const document = await loadDocumentRecord(payload, documentId)
+        await ingestDocument(payload, document)
       } catch (error) {
         await markDocumentIngestError(
           payload,
           documentId,
           error instanceof Error ? error.message : 'Unable to index this book right now.',
-          options?.req,
         )
+      } finally {
+        inflightDocumentIngests.delete(inflightKey)
       }
     })()
   })
