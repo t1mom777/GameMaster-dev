@@ -79,7 +79,7 @@ services:
       - "6333"
 
   livekit:
-    image: livekit/livekit-server:v1.8.4
+    image: livekit/livekit-server:v1.9.8
     environment:
       LIVEKIT_CONFIG: |
         port: 7880
