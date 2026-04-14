@@ -21,7 +21,7 @@ const bodyFont = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  description: 'Voice-first tabletop adventures with a private player library, persistent game state, and hidden admin controls.',
+  description: 'Voice-first tabletop adventures with a shared-table play surface, grounded rulebooks, and persistent game state.',
   icons: {
     icon: '/icon.svg',
   },
@@ -45,7 +45,7 @@ export default async function FrontendLayout(props: { children: React.ReactNode 
               {playerSession ? (
                 <>
                   <Link className="topbar__link" href="/play">
-                    My game
+                    Play
                   </Link>
                   <a className="button button--ghost" href="/auth/logout?returnTo=/">
                     Sign out
