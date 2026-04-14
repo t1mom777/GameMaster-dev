@@ -9,6 +9,13 @@ type SessionRecord = {
   welcomeText?: string | null
 }
 
+type TableRosterEntry = {
+  livekitIdentity?: string | null
+  mappedName?: string | null
+  participantLabel?: string | null
+  speakingNotes?: string | null
+}
+
 function relationId(input: { id?: string | number } | string | number | null | undefined): string | null {
   if (!input) {
     return null
@@ -23,6 +30,18 @@ export async function loadRuntimeContext(payload: Payload, session: SessionRecor
   const runtimeDefaults = await payload.findGlobal({
     overrideAccess: true,
     slug: 'runtime-defaults',
+  })
+  const tableMappings = await payload.find({
+    collection: 'player-mappings',
+    depth: 0,
+    limit: 24,
+    overrideAccess: true,
+    pagination: false,
+    where: {
+      session: {
+        equals: session.id,
+      },
+    },
   })
 
   let activeDocumentIds =
@@ -65,5 +84,31 @@ export async function loadRuntimeContext(payload: Payload, session: SessionRecor
       welcomeText: session.welcomeText || '',
     },
     activeDocumentIds,
+    tableRoster: tableMappings.docs
+      .map((entry) => {
+        const mapping = entry as unknown as TableRosterEntry
+        if (
+          typeof mapping.livekitIdentity !== 'string' ||
+          !mapping.livekitIdentity.startsWith('table-seat-') ||
+          typeof mapping.mappedName !== 'string' ||
+          !mapping.mappedName.trim()
+        ) {
+          return null
+        }
+
+        return {
+          livekitIdentity: mapping.livekitIdentity,
+          name: mapping.mappedName,
+          label: mapping.participantLabel || mapping.livekitIdentity,
+          speakingNotes: mapping.speakingNotes || '',
+        }
+      })
+      .filter((entry): entry is { label: string; livekitIdentity: string; name: string; speakingNotes: string } => Boolean(entry))
+      .sort((left, right) => left.livekitIdentity.localeCompare(right.livekitIdentity))
+      .map(({ label, name, speakingNotes }) => ({
+        label,
+        name,
+        speakingNotes,
+      })),
   }
 }

@@ -30,23 +30,23 @@ export default async function LoginPage(props: {
       <section className="auth-shell">
         <div className="auth-shell__copy">
           <p className="eyebrow">Player sign-in</p>
-          <h1>Enter the table with your Google identity</h1>
+          <h1>Enter the shared table with your Google identity</h1>
           <p>
-            Sign in once, keep your player presence consistent, and move straight into your own game,
-            books, and voice setup.
+            Sign in once, keep the same player presence, and move straight into one shared device,
+            one mic, and one grounded rules stack.
           </p>
 
           <ul className="auth-list">
-            <li>Your library stays attached to the same player identity</li>
-            <li>Your books and voice setup stay with your player profile</li>
-            <li>Voice onboarding happens after sign-in, not before</li>
+            <li>Your books stay attached to the same player identity</li>
+            <li>The table roster and mic setup happen after sign-in</li>
+            <li>Voice only opens after the main rulebook is ready</li>
           </ul>
         </div>
 
         <div className="auth-card">
           <p className="eyebrow">Continue</p>
           <h2>Google SSO required</h2>
-          <p>Use the same player identity each time so books, speaker labels, and your active game stay clean.</p>
+          <p>Use the same player identity each time so books, table labels, and the current game stay clean.</p>
 
           {authNotice && <div className="notice-card">{authNotice}</div>}
 

@@ -37,13 +37,14 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
   const primaryBook = library.find((entry) => entry.isPrimary) || null
   const supportingCount = library.filter((entry) => !entry.isPrimary).length
   const readyCount = library.filter((entry) => entry.isActive && entry.status === 'ready').length
+  const primaryBookReady = primaryBook?.status === 'ready'
 
   return (
     <main className="surface surface--session">
       <div className="session-shell">
         <section className="session-hero">
           <Link className="back-link" href="/play">
-            Back to my game
+            Back to play
           </Link>
 
           <div className="session-hero__head">
@@ -54,7 +55,7 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
 
           <div className="session-hero__facts">
             <div>
-              <span>Primary book</span>
+              <span>Main book</span>
               <strong>{primaryBook?.title || 'Not set yet'}</strong>
             </div>
             <div>
@@ -74,9 +75,9 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
           <div className="session-hero__brief">
             <h2>Before voice starts</h2>
             <ul>
-              <li>Confirm your player display name.</li>
-              <li>Choose the microphone you want to use for the table.</li>
-              <li>Label speakers only if more than one human voice is present.</li>
+              <li>Place one shared device near the center of the real table.</li>
+              <li>Choose the microphone that will hear everyone around it.</li>
+              <li>Name the people seated around the mic before you open voice.</li>
               <li>Keep this tab open so voice state and scene continuity stay stable.</li>
             </ul>
           </div>
@@ -88,6 +89,9 @@ export default async function SessionPage(props: { params: Promise<{ slug: strin
             email: player.email || playerSession.email,
           }}
           initialPlayerName={player.displayName}
+          primaryRulebookTitle={primaryBook?.title || null}
+          readyBookCount={readyCount}
+          rulebookReady={primaryBookReady}
           sessionSlug={session.slug}
           title={session.title}
           welcomeText={session.welcomeText || ''}

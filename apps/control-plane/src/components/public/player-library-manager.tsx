@@ -29,16 +29,16 @@ function statusLabel(status: string): string {
     case 'ready':
       return 'Ready'
     case 'indexing':
-      return 'Indexing'
+      return 'Processing'
     case 'error':
       return 'Needs attention'
     default:
-      return 'Queued'
+      return 'Upload received'
   }
 }
 
 function roleLabel(book: LibraryBook): string {
-  return book.isPrimary ? 'Primary rulebook' : 'Supporting book'
+  return book.isPrimary ? 'Main rulebook' : 'Supporting book'
 }
 
 function formatTimestamp(input: string | null): string {
@@ -52,6 +52,31 @@ function formatTimestamp(input: string | null): string {
   }
 
   return timestamp.toLocaleString()
+}
+
+function bookStatusDetail(book: LibraryBook): string {
+  switch (book.status) {
+    case 'ready':
+      return 'Indexed and available for the GM during voice.'
+    case 'indexing':
+      return 'Parsing, converting to Markdown, and indexing now.'
+    case 'error':
+      return 'This book needs attention before it can ground voice play.'
+    default:
+      return 'The upload reached the library. Processing will start shortly.'
+  }
+}
+
+function normalizeLibraryMessage(error: unknown, fallback: string): string {
+  if (error instanceof TypeError || (error instanceof Error && /failed to fetch/i.test(error.message))) {
+    return 'The browser could not finish the upload. If the book is in a phone or cloud-sync folder, copy it to a local folder first and retry.'
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return fallback
 }
 
 export function PlayerLibraryManager() {
@@ -94,7 +119,7 @@ export function PlayerLibraryManager() {
         Object.fromEntries((payload.books || []).map((book) => [book.id, book.title])),
       )
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to load your game library.')
+      setMessage(normalizeLibraryMessage(error, 'Unable to load your game library.'))
     } finally {
       if (!options?.silent) {
         setIsLoading(false)
@@ -167,11 +192,11 @@ export function PlayerLibraryManager() {
 
       setMessage(
         replaceDocumentId
-          ? 'Your book was replaced. Indexing will refresh the active game automatically.'
-          : 'Your book was added. Indexing will refresh the active game automatically.',
+          ? 'The book was replaced. The library will keep refreshing while processing finishes.'
+          : 'The book was added. The library will keep refreshing while processing finishes.',
       )
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to update your library.')
+      setMessage(normalizeLibraryMessage(error, 'Unable to update your library.'))
     } finally {
       setIsSaving(false)
     }
@@ -201,7 +226,7 @@ export function PlayerLibraryManager() {
       )
       setMessage(successMessage)
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to update the book.')
+      setMessage(normalizeLibraryMessage(error, 'Unable to update the book.'))
     } finally {
       setBusyId(null)
     }
@@ -233,7 +258,7 @@ export function PlayerLibraryManager() {
       )
       setMessage('The book was removed from your library and game context.')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to remove the book.')
+      setMessage(normalizeLibraryMessage(error, 'Unable to remove the book.'))
     } finally {
       setBusyId(null)
     }
@@ -243,21 +268,28 @@ export function PlayerLibraryManager() {
     <section className="library-card">
       <div className="library-card__header">
         <div>
-          <p className="eyebrow">Your library</p>
-          <h2>Rulebooks and supporting books</h2>
+          <p className="eyebrow">Table books</p>
+          <h2>Main rulebook and supporting books</h2>
         </div>
         <BookCopy size={18} />
       </div>
 
       <p className="library-card__lede">
-        Keep one primary rulebook and any number of supporting books. Active books are synced into
-        your personal game automatically before voice play starts.
+        Keep one main rulebook and any number of supporting books. Voice stays locked until the main
+        rulebook is ready, and active books sync into the shared-mic session automatically.
       </p>
+
+      {isSaving && (
+        <div className="status-line">
+          <LoaderCircle className="spin" size={16} />
+          Uploading the selected file to the library. Keep this tab open until the upload finishes.
+        </div>
+      )}
 
       {hasPendingBooks && (
         <div className="status-line">
           <LoaderCircle className="spin" size={16} />
-          Indexing is still running. This panel refreshes automatically.
+          Processing is still running. Each book is parsed, normalized to Markdown, and indexed automatically.
         </div>
       )}
 
@@ -295,6 +327,7 @@ export function PlayerLibraryManager() {
                 <div className="library-item__copy">
                   <strong>{book.title}</strong>
                   <p>{book.filename || 'Uploaded document'}</p>
+                  <div className="subtle-note">{bookStatusDetail(book)}</div>
                 </div>
 
                 <label className="field">
@@ -332,14 +365,14 @@ export function PlayerLibraryManager() {
                     onClick={() =>
                       void patchLibrary(
                         { action: 'make-primary', documentId: book.id },
-                        'Primary rulebook updated.',
+                        'Main rulebook updated.',
                         book.id,
                       )
                     }
                     type="button"
                   >
-                    {busyId === book.id ? <LoaderCircle className="spin" size={18} /> : <Star size={18} />}
-                    Make primary
+                  {busyId === book.id ? <LoaderCircle className="spin" size={18} /> : <Star size={18} />}
+                    Make main
                   </button>
                 )}
 
@@ -356,7 +389,7 @@ export function PlayerLibraryManager() {
                   type="button"
                 >
                   {busyId === book.id ? <LoaderCircle className="spin" size={18} /> : <ShieldPlus size={18} />}
-                  {book.isPrimary ? 'Primary stays active' : book.isActive ? 'Exclude' : 'Include'}
+                  {book.isPrimary ? 'Main stays active' : book.isActive ? 'Exclude' : 'Include'}
                 </button>
 
                 <button
@@ -390,7 +423,7 @@ export function PlayerLibraryManager() {
         </div>
       ) : (
         <div className="notice-card notice-card--muted">
-          Your library is empty. Upload a primary rulebook first, then add supporting books as
+          Your library is empty. Upload a main rulebook first, then add supporting books as
           needed.
         </div>
       )}
@@ -414,7 +447,7 @@ export function PlayerLibraryManager() {
               }
               value={selectedRole}
             >
-              <option value="primary-rulebook">Primary rulebook</option>
+              <option value="primary-rulebook">Main rulebook</option>
               <option value="supporting-book">Supporting book</option>
             </select>
           </label>
@@ -452,8 +485,8 @@ export function PlayerLibraryManager() {
         </label>
 
         <div className="subtle-note">
-          PDF, Markdown, or plain text. One primary rulebook, multiple supporting books. Larger PDFs are
-          accepted, then normalized to Markdown during background indexing for cleaner retrieval.
+          PDF, Markdown, or plain text. One main rulebook, multiple supporting books. Larger PDFs are
+          accepted, then normalized to Markdown during background processing for cleaner retrieval.
         </div>
 
         {message && <div className="notice-card">{message}</div>}

@@ -31,11 +31,12 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
       : searchParams?.auth === 'google-failed'
         ? 'We could not finish sign-in. Try again or use a different Google account.'
         : null
+  const readyBooks = activeBooks.filter((entry) => entry.status === 'ready')
   const heroLede = playerSession
-    ? 'Your player identity, book library, and current game are ready in one place. Open the session when you want to continue with voice.'
-    : 'Bring your own rulebook, keep one persistent game, and move from sign-in to voice play without operator-style setup screens.'
+    ? 'Your table setup, book stack, and current game are ready in one place. Open play when the real table is seated around one microphone.'
+    : 'Sign in once, upload the books you want grounded in play, and run a shared-mic session from one device at the table.'
   const signedInSummary = playerSession
-    ? `${primaryBook ? `${primaryBook.title} is your primary rulebook.` : 'Your primary rulebook is not set yet.'} ${activeBooks.length} active book${activeBooks.length === 1 ? '' : 's'} will follow you into play.`
+    ? `${primaryBook ? `${primaryBook.title} is your main rulebook.` : 'Your main rulebook is not set yet.'} ${readyBooks.length} ready book${readyBooks.length === 1 ? '' : 's'} can ground the next session.`
     : null
 
   return (
@@ -49,7 +50,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
           <div className="hero__actions">
             {playerSession ? (
               <Link className="button button--primary" href="/play">
-                Open my game
+                Open play
               </Link>
             ) : (
               <Link className="button button--primary" href="/login">
@@ -58,7 +59,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
             )}
 
             <Link className="button button--ghost" href={playerSession ? '/play#library' : '#flow'}>
-              {playerSession ? 'Review my library' : 'See how it works'}
+              {playerSession ? 'Review books' : 'See the table flow'}
             </Link>
           </div>
 
@@ -69,11 +70,11 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
             </div>
             <div>
               <span>02</span>
-              <p>Upload your rulebook and supporting books.</p>
+              <p>Upload one main rulebook and any supporting books.</p>
             </div>
             <div>
               <span>03</span>
-              <p>Start or continue your game in Auto VAD.</p>
+              <p>Name the people around the table, then start shared-mic voice.</p>
             </div>
           </div>
 
@@ -82,21 +83,21 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
 
         <aside className="hero__panel">
           <p className="eyebrow">{playerSession ? 'Player status' : 'Product flow'}</p>
-          <h2>{playerSession ? 'You only need one player identity' : 'Personal library, persistent game, voice-first play'}</h2>
+          <h2>{playerSession ? 'One identity, one table surface' : 'One device, one mic, one grounded game surface'}</h2>
           {playerSession ? (
             <>
               <p className="hero__lede hero__lede--tight">{signedInSummary}</p>
               <div className="hero__status-grid">
                 <div>
-                  <span>Primary</span>
+                  <span>Main book</span>
                   <strong>{primaryBook?.title || 'Missing'}</strong>
                 </div>
                 <div>
-                  <span>Active books</span>
-                  <strong>{activeBooks.length}</strong>
+                  <span>Ready books</span>
+                  <strong>{readyBooks.length}</strong>
                 </div>
                 <div>
-                  <span>Game state</span>
+                  <span>Voice state</span>
                   <strong>{playerGame?.status === 'live' ? 'Live' : 'Ready'}</strong>
                 </div>
               </div>
@@ -104,9 +105,9 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
           ) : (
             <ul className="hero__checklist">
               <li>Google SSO before any playable presence</li>
-              <li>Your library stays attached to one player identity</li>
-              <li>Primary rulebook plus supporting books</li>
-              <li>Speaker labeling only when more than one human voice is present</li>
+              <li>One shared device sits at the real table</li>
+              <li>Main rulebook plus supporting books ground the GM</li>
+              <li>You name the people around the mic before the scene starts</li>
             </ul>
           )}
         </aside>
@@ -115,11 +116,11 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
       <section className="section-block" id="flow">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Your game</p>
-            <h2>{playerSession ? 'Everything important in one surface' : 'A cleaner way to enter voice play'}</h2>
+            <p className="eyebrow">Table flow</p>
+            <h2>{playerSession ? 'Everything important stays on one shared device' : 'A cleaner way to open a shared-mic session'}</h2>
           </div>
           <Link className="section-link" href={playerSession ? '/play' : '/login'}>
-            {playerSession ? 'Open my game' : 'Sign in to start'}
+            {playerSession ? 'Open play' : 'Sign in to start'}
           </Link>
         </div>
 
@@ -130,8 +131,8 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
                 {playerSession ? 'Signed in' : 'Step 1'}
               </span>
             </div>
-            <h3>Identity first</h3>
-            <p>Keep one Google-backed player identity so your books, voice settings, and mappings stay consistent.</p>
+            <h3>Trusted identity</h3>
+            <p>Keep one Google-backed player identity so the same table setup, book stack, and voice preferences come back every session.</p>
             <div className="room-card__footer">
               <span>{playerSession ? 'Player profile active' : 'Google SSO required'}</span>
               <Link className="text-link" href={playerSession ? '/play' : '/login'}>
@@ -143,19 +144,21 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
           <article className="room-card">
             <div className="room-card__topline">
               <span className={`pill ${primaryBook ? 'pill--accent' : ''}`}>
-                {primaryBook ? 'Primary ready' : 'Step 2'}
+                {primaryBook?.status === 'ready' ? 'Main book ready' : 'Step 2'}
               </span>
             </div>
-            <h3>Own your books</h3>
+            <h3>Rulebooks first</h3>
             <p>
-              {primaryBook
-                ? `${primaryBook.title} is your primary rulebook, with ${Math.max(playerLibrary.length - 1, 0)} supporting book${playerLibrary.length - 1 === 1 ? '' : 's'} in your library.`
-                : 'Upload a primary rulebook and any supporting books you want active during play.'}
+              {primaryBook?.status === 'ready'
+                ? `${primaryBook.title} is ready as the main rulebook, with ${Math.max(playerLibrary.length - 1, 0)} supporting book${playerLibrary.length - 1 === 1 ? '' : 's'} available for context.`
+                : primaryBook
+                  ? `${primaryBook.title} is still indexing. Voice unlocks when the main rulebook is ready.`
+                  : 'Upload a main rulebook first, then add supporting books you want available during play.'}
             </p>
             <div className="room-card__footer">
               <span>{playerSession ? `${activeBooks.length} active book${activeBooks.length === 1 ? '' : 's'}` : 'Library opens after sign-in'}</span>
               <Link className="text-link" href={playerSession ? '/play' : '/login'}>
-                {playerSession ? 'Manage library' : 'Unlock library'}
+                {playerSession ? 'Manage books' : 'Unlock library'}
               </Link>
             </div>
           </article>
@@ -166,14 +169,14 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
                 {playerGame?.status === 'live' ? 'Live' : 'Step 3'}
               </span>
             </div>
-            <h3>Start or continue with VAD</h3>
+            <h3>Shared-mic voice</h3>
             <p>
-              Open one personal game surface, check the mic, confirm speakers only if needed, and stay in scene.
+              Open one table surface, check the microphone, confirm who is seated around it, and let voice stay focused on the scene.
             </p>
             <div className="room-card__footer">
               <span>{playerGame ? 'Auto VAD session prepared' : 'Voice opens after sign-in'}</span>
               <Link className="text-link" href={playerSession ? '/play' : '/login'}>
-                {playerSession ? 'Open my game' : 'Start playing'}
+                {playerSession ? 'Open play' : 'Start playing'}
               </Link>
             </div>
           </article>

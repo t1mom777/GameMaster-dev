@@ -850,6 +850,36 @@ button {
   gap: 12px;
 }
 
+.table-seat-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.table-seat-card {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.table-seat-card__header {
+  display: grid;
+  gap: 6px;
+}
+
+.table-seat-card__header strong {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+}
+
+.table-seat-card__header span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .mapping-row {
   align-items: center;
   display: grid;
@@ -866,15 +896,15 @@ button {
 }
 
 .participant-board {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .participant-pill {
   display: grid;
   gap: 4px;
-  min-width: 140px;
+  min-width: 0;
   padding: 14px 16px;
 }
 
@@ -894,6 +924,10 @@ button {
 .subtle-note {
   color: var(--muted);
   font-size: 0.94rem;
+}
+
+.library-item__copy .subtle-note {
+  margin-top: 8px;
 }
 
 .spin {
@@ -962,7 +996,8 @@ button {
   .library-metrics,
   .game-card__facts,
   .library-form__grid,
-  .library-item__body {
+  .library-item__body,
+  .table-seat-grid {
     grid-template-columns: 1fr;
   }
 

@@ -28,6 +28,7 @@ class SessionContext:
     room_name: str
     session_title: str
     system_prompt: str
+    table_roster: list[dict[str, str]]
     welcome_text: str
     runtime_defaults: RuntimeDefaults
 
@@ -56,6 +57,7 @@ class ControlPlaneClient:
           room_name=payload["sessionSummary"]["roomName"],
           session_title=payload["sessionSummary"]["title"],
           system_prompt=runtime_defaults["systemPrompt"],
+          table_roster=payload.get("tableRoster", []),
           welcome_text=payload["sessionSummary"].get("welcomeText", ""),
           runtime_defaults=RuntimeDefaults(
               allow_text_fallback=runtime_defaults.get("allowTextFallback", True),

@@ -8,6 +8,7 @@ import {
   MicOff,
   Radio,
   RefreshCcw,
+  Save,
   Settings2,
   UsersRound,
 } from 'lucide-react'
@@ -30,6 +31,9 @@ type AuthenticatedPlayer = {
 type SessionRoomProps = {
   authenticatedPlayer?: AuthenticatedPlayer | null
   initialPlayerName?: string
+  primaryRulebookTitle?: string | null
+  readyBookCount: number
+  rulebookReady: boolean
   sessionSlug: string
   title: string
   welcomeText: string
@@ -46,10 +50,21 @@ type PersistedMapping = {
   livekitIdentity: string
   mappedName: string
   participantLabel: string
+  speakingNotes?: string
+}
+
+type TableSeatDraft = {
+  id: string
+  label: string
+  name: string
+  notes: string
 }
 
 const AUDIO_STORAGE_KEY = 'gm-preferred-mic'
 const NAME_STORAGE_KEY = 'gm-player-name'
+const TABLE_SEAT_PREFIX = 'table-seat-'
+const DEFAULT_TABLE_SEAT_COUNT = 4
+const MAX_TABLE_SEAT_COUNT = 6
 
 type LegacyCompatibleRoom = Room & {
   engine?: {
@@ -89,12 +104,70 @@ function buildParticipantRoster(room: Room, playerName: string, fallbackTitle: s
   return nextRoster
 }
 
-function buildRosterKey(participants: ParticipantEntry[]): string {
-  return participants
-    .filter((participant) => !participant.isAgent)
-    .map((participant) => participant.identity)
-    .sort()
-    .join('|')
+function clampTableSeatCount(value: number): number {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_TABLE_SEAT_COUNT
+  }
+
+  return Math.min(MAX_TABLE_SEAT_COUNT, Math.max(1, Math.trunc(value)))
+}
+
+function buildTableSeatId(index: number): string {
+  return `${TABLE_SEAT_PREFIX}${index + 1}`
+}
+
+function buildTableSeatLabel(index: number): string {
+  return `Seat ${index + 1}`
+}
+
+function buildTableSeatDrafts(
+  source: Record<string, { name?: string; notes?: string }>,
+  fallbackName: string,
+): TableSeatDraft[] {
+  return Array.from({ length: MAX_TABLE_SEAT_COUNT }, (_, index) => {
+    const id = buildTableSeatId(index)
+    const persisted = source[id] || {}
+
+    return {
+      id,
+      label: buildTableSeatLabel(index),
+      name: persisted.name || (index === 0 ? fallbackName : ''),
+      notes: persisted.notes || '',
+    }
+  })
+}
+
+function sortTableMappings(mappings: PersistedMapping[]): PersistedMapping[] {
+  return [...mappings].sort((left, right) => {
+    const leftIndex = Number.parseInt(left.livekitIdentity.replace(TABLE_SEAT_PREFIX, ''), 10)
+    const rightIndex = Number.parseInt(right.livekitIdentity.replace(TABLE_SEAT_PREFIX, ''), 10)
+
+    if (Number.isFinite(leftIndex) && Number.isFinite(rightIndex)) {
+      return leftIndex - rightIndex
+    }
+
+    return left.livekitIdentity.localeCompare(right.livekitIdentity)
+  })
+}
+
+function normalizeLibraryGateMessage(primaryRulebookTitle?: string | null): string {
+  if (primaryRulebookTitle) {
+    return `${primaryRulebookTitle} is still indexing. Wait until the main rulebook is ready before opening voice.`
+  }
+
+  return 'Upload and finish indexing a main rulebook before opening voice.'
+}
+
+function formatTableSetupError(error: unknown, fallback: string): string {
+  if (error instanceof TypeError || (error instanceof Error && /failed to fetch/i.test(error.message))) {
+    return 'The browser could not reach the upload or save service. If the book is in a phone or cloud-sync folder, copy it locally and retry.'
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return fallback
 }
 
 function formatSessionError(error: unknown, fallback: string): string {
@@ -140,20 +213,20 @@ export function SessionRoom(props: SessionRoomProps) {
   const [playerName, setPlayerName] = useState(props.initialPlayerName || '')
   const [joinBundle, setJoinBundle] = useState<JoinBundle | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [step, setStep] = useState<'preflight' | 'connecting' | 'mapping' | 'live'>('preflight')
+  const [step, setStep] = useState<'preflight' | 'connecting' | 'live'>('preflight')
   const [isConnected, setIsConnected] = useState(false)
   const [micEnabled, setMicEnabled] = useState(true)
   const [audioInputs, setAudioInputs] = useState<MediaDeviceInfo[]>([])
   const [selectedMicId, setSelectedMicId] = useState('')
   const [micCheckState, setMicCheckState] = useState<'idle' | 'checking' | 'ready' | 'blocked'>('idle')
   const [participantRoster, setParticipantRoster] = useState<ParticipantEntry[]>([])
-  const [persistedMappings, setPersistedMappings] = useState<Record<string, PersistedMapping>>({})
-  const [mappingDrafts, setMappingDrafts] = useState<Record<string, string>>({})
-  const [isLoadingMappings, setIsLoadingMappings] = useState(false)
-  const [isSavingMappings, setIsSavingMappings] = useState(false)
-  const [loadedMappingsRosterKey, setLoadedMappingsRosterKey] = useState('')
-  const [mappingStatus, setMappingStatus] = useState<string | null>(null)
-  const [acknowledgedRosterKey, setAcknowledgedRosterKey] = useState('')
+  const [tableSeatCount, setTableSeatCount] = useState(DEFAULT_TABLE_SEAT_COUNT)
+  const [tableSeatDrafts, setTableSeatDrafts] = useState<TableSeatDraft[]>(() =>
+    buildTableSeatDrafts({}, props.initialPlayerName || ''),
+  )
+  const [isLoadingTableSetup, setIsLoadingTableSetup] = useState(true)
+  const [isSavingTableSetup, setIsSavingTableSetup] = useState(false)
+  const [tableStatus, setTableStatus] = useState<string | null>(null)
   const roomRef = useRef<Room | null>(null)
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map())
 
@@ -173,6 +246,21 @@ export function SessionRoom(props: SessionRoomProps) {
       setPlayerName(props.initialPlayerName)
     }
   }, [props.authenticatedPlayer?.displayName, props.initialPlayerName])
+
+  useEffect(() => {
+    setTableSeatDrafts((current) => {
+      const next = [...current]
+      if (!next[0] || next[0].name.trim()) {
+        return current
+      }
+
+      next[0] = {
+        ...next[0],
+        name: playerName,
+      }
+      return next
+    })
+  }, [playerName])
 
   useEffect(() => {
     let mounted = true
@@ -221,80 +309,32 @@ export function SessionRoom(props: SessionRoomProps) {
     }
   }, [])
 
-  const humanParticipants = useMemo(
-    () => participantRoster.filter((participant) => !participant.isAgent),
+  useEffect(() => {
+    void loadTableSetup()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.sessionSlug])
+
+  const visibleTableSeats = useMemo(
+    () => tableSeatDrafts.slice(0, tableSeatCount),
+    [tableSeatCount, tableSeatDrafts],
+  )
+  const connectedAgent = useMemo(
+    () => participantRoster.find((participant) => participant.isAgent) || null,
     [participantRoster],
   )
-  const rosterKey = useMemo(
-    () => humanParticipants.map((participant) => participant.identity).sort().join('|'),
-    [humanParticipants],
-  )
-  const participantDisplay = useMemo(
+  const tableSeatsReady = useMemo(
     () =>
-      participantRoster.map((participant) => ({
-        ...participant,
-        mappedName:
-          mappingDrafts[participant.identity] ||
-          persistedMappings[participant.identity]?.mappedName ||
-          participant.label,
-      })),
-    [mappingDrafts, participantRoster, persistedMappings],
+      visibleTableSeats.length > 0 &&
+      visibleTableSeats.every((seat) => seat.name.trim().length >= 2),
+    [visibleTableSeats],
+  )
+  const tableSeatsWithNotes = useMemo(
+    () => visibleTableSeats.filter((seat) => seat.notes.trim().length > 0).length,
+    [visibleTableSeats],
   )
 
-  useEffect(() => {
-    if (!participantRoster.length) {
-      return
-    }
-
-    setMappingDrafts((current) => {
-      const next = { ...current }
-
-      for (const participant of participantRoster) {
-        if (!participant.isAgent && !next[participant.identity]) {
-          next[participant.identity] =
-            persistedMappings[participant.identity]?.mappedName ||
-            (participant.isLocal ? playerName : participant.label)
-        }
-      }
-
-      return next
-    })
-  }, [participantRoster, persistedMappings, playerName])
-
-  useEffect(() => {
-    if (isConnected && humanParticipants.length > 1 && rosterKey && rosterKey !== acknowledgedRosterKey) {
-      setStep('mapping')
-      setMappingStatus(null)
-    }
-  }, [acknowledgedRosterKey, humanParticipants.length, isConnected, rosterKey])
-
-  useEffect(() => {
-    if (
-      !isConnected ||
-      humanParticipants.length < 2 ||
-      !rosterKey ||
-      rosterKey === loadedMappingsRosterKey ||
-      isLoadingMappings
-    ) {
-      return
-    }
-
-    void loadMappings(rosterKey)
-  }, [humanParticipants.length, isConnected, isLoadingMappings, loadedMappingsRosterKey, rosterKey])
-
-  useEffect(() => {
-    if (!isConnected || humanParticipants.length > 1 || !rosterKey) {
-      return
-    }
-
-    setAcknowledgedRosterKey(rosterKey)
-    if (step === 'mapping') {
-      setStep('live')
-    }
-  }, [humanParticipants.length, isConnected, rosterKey, step])
-
-  async function loadMappings(targetRosterKey = '') {
-    setIsLoadingMappings(true)
+  async function loadTableSetup() {
+    setIsLoadingTableSetup(true)
 
     try {
       const response = await fetch(
@@ -306,24 +346,37 @@ export function SessionRoom(props: SessionRoomProps) {
 
       const payload = await readApiPayload<{ mappings?: PersistedMapping[] }>(
         response,
-        'Unable to load speaker labels.',
+        'Unable to load the table setup.',
       )
       if (!response.ok) {
-        throw new Error(payload.message || 'Unable to load speaker labels.')
+        throw new Error(payload.message || 'Unable to load the table setup.')
       }
 
-      setPersistedMappings(
-        Object.fromEntries(
-          (payload.mappings || []).map((mapping) => [mapping.livekitIdentity, mapping]),
+      const tableMappings = sortTableMappings(
+        (payload.mappings || []).filter((mapping) =>
+          mapping.livekitIdentity.startsWith(TABLE_SEAT_PREFIX),
         ),
       )
-      setLoadedMappingsRosterKey(targetRosterKey || rosterKey)
+      const nextSeatCount = clampTableSeatCount(tableMappings.length || DEFAULT_TABLE_SEAT_COUNT)
+      const seed = Object.fromEntries(
+        tableMappings.map((mapping) => [
+          mapping.livekitIdentity,
+          {
+            name: mapping.mappedName,
+            notes: mapping.speakingNotes || '',
+          },
+        ]),
+      )
+
+      setTableSeatCount(nextSeatCount)
+      setTableSeatDrafts(buildTableSeatDrafts(seed, playerName || props.initialPlayerName || ''))
+      setTableStatus(tableMappings.length ? 'Saved table labels loaded.' : null)
     } catch (mappingError) {
-      setMappingStatus(
-        mappingError instanceof Error ? mappingError.message : 'Unable to load player labels.',
+      setTableStatus(
+        formatTableSetupError(mappingError, 'Unable to load the table setup.'),
       )
     } finally {
-      setIsLoadingMappings(false)
+      setIsLoadingTableSetup(false)
     }
   }
 
@@ -350,7 +403,7 @@ export function SessionRoom(props: SessionRoomProps) {
       setError(
         deviceError instanceof Error
           ? deviceError.message
-          : 'Microphone access was blocked for this game session.',
+          : 'Microphone access was blocked for this table session.',
       )
     }
   }
@@ -416,8 +469,6 @@ export function SessionRoom(props: SessionRoomProps) {
       setParticipantRoster([])
       setStep('preflight')
       setJoinBundle(null)
-      setLoadedMappingsRosterKey('')
-      setAcknowledgedRosterKey('')
     })
 
     await room.connect(bundle.serverUrl, bundle.token)
@@ -431,32 +482,100 @@ export function SessionRoom(props: SessionRoomProps) {
       }
     }
 
-    const nextRoster = syncParticipants(room)
-    const nextHumanParticipants = nextRoster.filter((participant) => !participant.isAgent)
-    const nextRosterKey = buildRosterKey(nextRoster)
-
+    syncParticipants(room)
     setJoinBundle(bundle)
     setIsConnected(true)
     setMicEnabled(true)
+    setStep('live')
+  }
 
-    if (nextHumanParticipants.length > 1) {
-      setAcknowledgedRosterKey('')
-      setStep('mapping')
-    } else {
-      setAcknowledgedRosterKey(nextRosterKey)
-      setStep('live')
+  async function saveTableSetup(showSuccessMessage: boolean): Promise<boolean> {
+    if (!tableSeatsReady) {
+      setTableStatus('Add a short name for every seat before you continue.')
+      return false
+    }
+
+    setIsSavingTableSetup(true)
+
+    try {
+      const response = await fetch('/api/gm/public/player-mappings', {
+        body: JSON.stringify({
+          mappings: visibleTableSeats.map((seat) => ({
+            livekitIdentity: seat.id,
+            mappedName: seat.name.trim(),
+            participantLabel: seat.label,
+            speakingNotes: seat.notes.trim() || undefined,
+          })),
+          replaceTableRoster: true,
+          sessionSlug: props.sessionSlug,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      })
+
+      const payload = await readApiPayload<{ mappings?: PersistedMapping[] }>(
+        response,
+        'Unable to save the table setup.',
+      )
+      if (!response.ok) {
+        throw new Error(payload.message || 'Unable to save the table setup.')
+      }
+
+      const tableMappings = sortTableMappings(
+        (payload.mappings || []).filter((mapping) =>
+          mapping.livekitIdentity.startsWith(TABLE_SEAT_PREFIX),
+        ),
+      )
+      const nextSeatCount = clampTableSeatCount(tableMappings.length || tableSeatCount)
+      const seed = Object.fromEntries(
+        tableMappings.map((mapping) => [
+          mapping.livekitIdentity,
+          {
+            name: mapping.mappedName,
+            notes: mapping.speakingNotes || '',
+          },
+        ]),
+      )
+
+      setTableSeatCount(nextSeatCount)
+      setTableSeatDrafts(buildTableSeatDrafts(seed, playerName))
+      setTableStatus(showSuccessMessage ? 'Table names saved for this session.' : null)
+      return true
+    } catch (mappingError) {
+      setTableStatus(formatTableSetupError(mappingError, 'Unable to save the table setup.'))
+      return false
+    } finally {
+      setIsSavingTableSetup(false)
     }
   }
 
   async function joinSession() {
     setError(null)
 
+    if (!props.rulebookReady) {
+      setError(normalizeLibraryGateMessage(props.primaryRulebookTitle))
+      return
+    }
+
     if (micCheckState !== 'ready') {
       setError('Run the microphone check before starting the game.')
       return
     }
 
+    if (playerName.trim().length < 2) {
+      setError('Give the signed-in player a short label before starting.')
+      return
+    }
+
     setStep('connecting')
+
+    const saved = await saveTableSetup(false)
+    if (!saved) {
+      setStep('preflight')
+      return
+    }
 
     try {
       const response = await fetch('/api/gm/public/join', {
@@ -483,57 +602,6 @@ export function SessionRoom(props: SessionRoomProps) {
     }
   }
 
-  async function saveMappingsAndContinue() {
-    const nextMappings = humanParticipants.map((participant) => ({
-      livekitIdentity: participant.identity,
-      mappedName: (mappingDrafts[participant.identity] || participant.label).trim(),
-      participantLabel: participant.label,
-    }))
-
-    if (nextMappings.some((mapping) => mapping.mappedName.length < 2)) {
-      setMappingStatus('Give each player a short label before continuing.')
-      return
-    }
-
-    setIsSavingMappings(true)
-    setMappingStatus(null)
-
-    try {
-      const response = await fetch('/api/gm/public/player-mappings', {
-        body: JSON.stringify({
-          mappings: nextMappings,
-          sessionSlug: props.sessionSlug,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      })
-
-      const payload = await readApiPayload<{ mappings?: PersistedMapping[] }>(
-        response,
-        'Unable to save player labels.',
-      )
-      if (!response.ok) {
-        throw new Error(payload.message || 'Unable to save player labels.')
-      }
-
-      setPersistedMappings(
-        Object.fromEntries(
-          (payload.mappings || []).map((mapping) => [mapping.livekitIdentity, mapping]),
-        ),
-      )
-      setAcknowledgedRosterKey(rosterKey)
-      setStep('live')
-    } catch (mappingError) {
-      setMappingStatus(
-        mappingError instanceof Error ? mappingError.message : 'Unable to save player labels.',
-      )
-    } finally {
-      setIsSavingMappings(false)
-    }
-  }
-
   async function toggleMic() {
     const room = roomRef.current
     if (!room) {
@@ -552,21 +620,13 @@ export function SessionRoom(props: SessionRoomProps) {
     setIsConnected(false)
     setMicEnabled(true)
     setParticipantRoster([])
-    setPersistedMappings({})
-    setMappingDrafts({})
-    setLoadedMappingsRosterKey('')
-    setMappingStatus(null)
-    setAcknowledgedRosterKey('')
+    setError(null)
     setStep('preflight')
   }
 
   const liveSummary = useMemo(() => {
     if (step === 'connecting') {
       return 'Connecting voice'
-    }
-
-    if (step === 'mapping') {
-      return 'Confirming speakers'
     }
 
     if (isConnected) {
@@ -600,22 +660,28 @@ export function SessionRoom(props: SessionRoomProps) {
         </div>
       </div>
 
+      {!props.rulebookReady && (
+        <div className="notice-card">
+          {normalizeLibraryGateMessage(props.primaryRulebookTitle)}
+        </div>
+      )}
+
       {step === 'preflight' && (
         <div className="stack-panel">
           <div className="panel-card">
             <div className="panel-card__header">
               <div>
                 <p className="eyebrow">Step 1</p>
-                <h3>Check your mic</h3>
+                <h3>Check the shared mic</h3>
               </div>
               <Settings2 size={18} />
             </div>
 
             <label className="field">
-              <span>Player label</span>
+              <span>Signed-in player label</span>
               <input
                 onChange={(event) => setPlayerName(event.target.value)}
-                placeholder="Your table name"
+                placeholder="Who is launching the session?"
                 value={playerName}
               />
             </label>
@@ -640,27 +706,127 @@ export function SessionRoom(props: SessionRoomProps) {
                 {micCheckState === 'checking' ? <LoaderCircle className="spin" size={18} /> : <Mic size={18} />}
                 {micCheckState === 'ready' ? 'Mic checked' : 'Run mic check'}
               </button>
-
-              <button
-                className="button button--primary"
-                disabled={playerName.trim().length < 2 || micCheckState !== 'ready'}
-                onClick={joinSession}
-                type="button"
-              >
-                Start with VAD
-                <ArrowRight size={18} />
-              </button>
             </div>
 
             <div className="status-line">
               {micCheckState === 'ready' && (
                 <>
                   <CheckCircle2 size={16} />
-                  Your microphone is ready for this session.
+                  The shared microphone is ready.
                 </>
               )}
-              {micCheckState === 'idle' && 'Run a quick mic check before you start.'}
+              {micCheckState === 'idle' && 'Run a quick mic check before the table starts.'}
               {micCheckState === 'blocked' && 'Microphone access is blocked for this browser session.'}
+            </div>
+          </div>
+
+          <div className="panel-card">
+            <div className="panel-card__header">
+              <div>
+                <p className="eyebrow">Step 2</p>
+                <h3>Name the people at the table</h3>
+              </div>
+              <UsersRound size={18} />
+            </div>
+
+            <p className="panel-card__copy">
+              Everyone shares one device and one microphone. Save the seat names now so the GM has a
+              stable roster before the scene starts.
+            </p>
+
+            {isLoadingTableSetup && (
+              <div className="status-line">
+                <LoaderCircle className="spin" size={16} />
+                Loading saved table labels.
+              </div>
+            )}
+
+            <label className="field">
+              <span>People at this microphone</span>
+              <select
+                onChange={(event) => setTableSeatCount(clampTableSeatCount(Number.parseInt(event.target.value, 10)))}
+                value={tableSeatCount}
+              >
+                {Array.from({ length: MAX_TABLE_SEAT_COUNT }, (_, index) => {
+                  const count = index + 1
+                  return (
+                    <option key={count} value={count}>
+                      {count} {count === 1 ? 'person' : 'people'}
+                    </option>
+                  )
+                })}
+              </select>
+            </label>
+
+            <div className="table-seat-grid">
+              {visibleTableSeats.map((seat) => (
+                <div className="table-seat-card" key={seat.id}>
+                  <div className="table-seat-card__header">
+                    <strong>{seat.label}</strong>
+                    <span>Short name plus optional cue</span>
+                  </div>
+
+                  <label className="field">
+                    <span>Name</span>
+                    <input
+                      onChange={(event) =>
+                        setTableSeatDrafts((current) =>
+                          current.map((entry) =>
+                            entry.id === seat.id ? { ...entry, name: event.target.value } : entry,
+                          ),
+                        )
+                      }
+                      placeholder="Player or character name"
+                      value={seat.name}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Quick cue</span>
+                    <input
+                      onChange={(event) =>
+                        setTableSeatDrafts((current) =>
+                          current.map((entry) =>
+                            entry.id === seat.id ? { ...entry, notes: event.target.value } : entry,
+                          ),
+                        )
+                      }
+                      placeholder="Seat, character, or voice cue"
+                      value={seat.notes}
+                    />
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            {tableStatus && <div className="notice-card">{tableStatus}</div>}
+
+            <div className="inline-actions">
+              <button
+                className="button button--ghost"
+                disabled={isSavingTableSetup || isLoadingTableSetup}
+                onClick={() => void saveTableSetup(true)}
+                type="button"
+              >
+                {isSavingTableSetup ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}
+                Save table labels
+              </button>
+
+              <button
+                className="button button--primary"
+                disabled={isSavingTableSetup || !props.rulebookReady || !tableSeatsReady || micCheckState !== 'ready'}
+                onClick={joinSession}
+                type="button"
+              >
+                Start shared-mic VAD
+                <ArrowRight size={18} />
+              </button>
+            </div>
+
+            <div className="status-line">
+              {props.rulebookReady
+                ? `${props.readyBookCount} ready book${props.readyBookCount === 1 ? '' : 's'} will ground the next voice session.`
+                : normalizeLibraryGateMessage(props.primaryRulebookTitle)}
             </div>
           </div>
         </div>
@@ -670,72 +836,7 @@ export function SessionRoom(props: SessionRoomProps) {
         <div className="panel-card panel-card--centered">
           <LoaderCircle className="spin" size={22} />
           <h3>Connecting voice</h3>
-          <p>Your voice session is opening now.</p>
-        </div>
-      )}
-
-      {step === 'mapping' && (
-        <div className="panel-card">
-          <div className="panel-card__header">
-            <div>
-              <p className="eyebrow">Step 2</p>
-              <h3>Who is who?</h3>
-            </div>
-            <UsersRound size={18} />
-          </div>
-
-          <p className="panel-card__copy">
-            More than one human player is present. Confirm the labels so the session can keep
-            voices straight.
-          </p>
-
-          {isLoadingMappings && (
-            <div className="status-line">
-              <LoaderCircle className="spin" size={16} />
-              Loading saved speaker labels.
-            </div>
-          )}
-
-          <div className="mapping-list">
-            {humanParticipants.map((participant) => (
-              <label className="mapping-row" key={participant.identity}>
-                <span>{participant.label}</span>
-                <input
-                  onChange={(event) =>
-                    setMappingDrafts((current) => ({
-                      ...current,
-                      [participant.identity]: event.target.value,
-                    }))
-                  }
-                  placeholder={participant.isLocal ? 'You' : 'Player name'}
-                  value={mappingDrafts[participant.identity] || ''}
-                />
-              </label>
-            ))}
-          </div>
-
-          {mappingStatus && <div className="notice-card">{mappingStatus}</div>}
-
-          <div className="inline-actions">
-            <button
-              className="button button--primary"
-              disabled={isSavingMappings}
-              onClick={saveMappingsAndContinue}
-              type="button"
-            >
-              {isSavingMappings ? <LoaderCircle className="spin" size={18} /> : 'Save labels'}
-            </button>
-            <button
-              className="button button--ghost"
-              onClick={() => {
-                setAcknowledgedRosterKey(rosterKey)
-                setStep('live')
-              }}
-              type="button"
-            >
-              Continue
-            </button>
-          </div>
+          <p>Saving the table roster and opening the shared-mic session now.</p>
         </div>
       )}
 
@@ -743,20 +844,20 @@ export function SessionRoom(props: SessionRoomProps) {
         <div className="stack-panel">
           <div className="session-strip">
             <div>
-              <span>Session</span>
-              <strong>{props.title}</strong>
+              <span>Table seats</span>
+              <strong>{visibleTableSeats.length}</strong>
             </div>
             <div>
-              <span>Participants</span>
-              <strong>{humanParticipants.length}</strong>
+              <span>Connected room</span>
+              <strong>{joinBundle?.roomName || 'Not connected'}</strong>
+            </div>
+            <div>
+              <span>GM</span>
+              <strong>{connectedAgent ? 'Listening' : 'Joining'}</strong>
             </div>
             <div>
               <span>Audio</span>
               <strong>{micEnabled ? 'Mic live' : 'Mic muted'}</strong>
-            </div>
-            <div>
-              <span>Voice mode</span>
-              <strong>Auto VAD</strong>
             </div>
           </div>
 
@@ -764,13 +865,13 @@ export function SessionRoom(props: SessionRoomProps) {
             <div className="panel-card__header">
               <div>
                 <p className="eyebrow">Now playing</p>
-                <h3>Stay in scene</h3>
+                <h3>Keep the table in scene</h3>
               </div>
               <Radio size={18} />
             </div>
             <p className="panel-card__copy">
-              Keep this page open. Voice controls stay lightweight so the game stays focused on the
-              scene instead of the control surface.
+              Everyone shares one microphone. Speak naturally, pause between overlapping voices when
+              you can, and keep the saved seat names stable across sessions.
             </p>
 
             <div className="inline-actions">
@@ -779,15 +880,9 @@ export function SessionRoom(props: SessionRoomProps) {
                 {micEnabled ? 'Mute mic' : 'Unmute mic'}
               </button>
 
-              {humanParticipants.length > 1 && (
-                <button className="button button--ghost" onClick={() => setStep('mapping')} type="button">
-                  Review player labels
-                </button>
-              )}
-
               <button className="button button--ghost" onClick={resetRoom} type="button">
                 <RefreshCcw size={18} />
-                Leave session
+                Reopen setup
               </button>
             </div>
           </div>
@@ -797,25 +892,44 @@ export function SessionRoom(props: SessionRoomProps) {
       {error && <div className="notice-card">{error}</div>}
 
       <div className="participant-board">
-        {participantDisplay.map((participant) => (
-          <div className="participant-pill" key={participant.identity}>
-            <strong>{participant.mappedName}</strong>
+        {visibleTableSeats.map((seat) => (
+          <div className="participant-pill" key={seat.id}>
+            <strong>{seat.name.trim() || seat.label}</strong>
             <span>
-              {participant.isAgent ? 'GM' : participant.isLocal ? 'You' : 'Player'}
+              {seat.label}
+              {seat.notes.trim() ? ` · ${seat.notes.trim()}` : ''}
             </span>
           </div>
         ))}
 
-        {!participantDisplay.length && (
-          <div className="participant-pill participant-pill--empty">Start the voice session to load the table.</div>
+        <div className="participant-pill">
+          <strong>Shared device</strong>
+          <span>{isConnected ? 'Connected to the room' : 'Waiting to start'}</span>
+        </div>
+
+        <div className="participant-pill">
+          <strong>GM</strong>
+          <span>{connectedAgent ? 'Voice GM joined the room' : 'Starts after voice opens'}</span>
+        </div>
+
+        {!visibleTableSeats.length && (
+          <div className="participant-pill participant-pill--empty">
+            Add the people around this microphone before starting.
+          </div>
         )}
       </div>
 
       {joinBundle && (
         <div className="subtle-note">
-          Voice session connected and ready.
+          Shared-mic voice is connected and ready.
         </div>
       )}
+
+      <div className="subtle-note">
+        {tableSeatsWithNotes
+          ? `${tableSeatsWithNotes} seat cue${tableSeatsWithNotes === 1 ? '' : 's'} saved to help the GM keep the table straight.`
+          : 'Add quick seat cues if two people sound similar on the same microphone.'}
+      </div>
     </section>
   )
 }

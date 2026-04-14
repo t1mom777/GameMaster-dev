@@ -13,6 +13,7 @@ const mappingPayloadSchema = z.object({
 
 const saveMappingsSchema = z.object({
   mappings: z.array(mappingPayloadSchema).min(1).max(12),
+  replaceTableRoster: z.boolean().optional(),
   sessionSlug: z.string().trim().min(1),
 })
 
@@ -30,6 +31,7 @@ type MappingRecord = {
   livekitIdentity: string
   mappedName: string
   participantLabel: string
+  speakingNotes?: string
 }
 
 function toMappingRecord(input: unknown): MappingRecord | null {
@@ -52,6 +54,7 @@ function toMappingRecord(input: unknown): MappingRecord | null {
     livekitIdentity: candidate.livekitIdentity,
     mappedName: candidate.mappedName,
     participantLabel: candidate.participantLabel,
+    speakingNotes: typeof candidate.speakingNotes === 'string' ? candidate.speakingNotes : '',
   }
 }
 
@@ -217,7 +220,43 @@ export const publicPlayerMappingsSaveEndpoint: Endpoint = {
         livekitIdentity: saved.livekitIdentity,
         mappedName: saved.mappedName,
         participantLabel: saved.participantLabel,
+        speakingNotes: saved.speakingNotes || '',
       })
+    }
+
+    if (data.replaceTableRoster) {
+      const keepSeatIdentities = new Set(
+        data.mappings
+          .map((entry) => entry.livekitIdentity)
+          .filter((identity) => identity.startsWith('table-seat-')),
+      )
+
+      const existingTableMappings = await req.payload.find({
+        collection: 'player-mappings',
+        depth: 0,
+        limit: 24,
+        overrideAccess: true,
+        pagination: false,
+        where: {
+          session: {
+            equals: context.session.id,
+          },
+        },
+      })
+
+      for (const mapping of existingTableMappings.docs) {
+        if (
+          typeof mapping.livekitIdentity === 'string' &&
+          mapping.livekitIdentity.startsWith('table-seat-') &&
+          !keepSeatIdentities.has(mapping.livekitIdentity)
+        ) {
+          await req.payload.delete({
+            collection: 'player-mappings',
+            id: mapping.id,
+            overrideAccess: true,
+          } as never)
+        }
+      }
     }
 
     return Response.json({

@@ -34,33 +34,30 @@ export default async function PlayPage() {
   const supportingBooks = library.filter((entry) => !entry.isPrimary)
   const activeBooks = library.filter((entry) => entry.isActive)
   const readyBooks = activeBooks.filter((entry) => entry.status === 'ready')
+  const primaryRulebookReady = primaryRulebook?.status === 'ready'
+  const primaryRulebookIndexing = Boolean(primaryRulebook) && !primaryRulebookReady
 
   return (
     <main className="surface surface--play">
       <section className="play-hero">
         <div>
           <p className="eyebrow">Signed in as {player.displayName}</p>
-          <h1>Start or continue your game</h1>
+          <h1>Run the table from one device</h1>
           <p>
-            Your books stay with your account, your active game stays provisioned, and voice opens in
-            Auto VAD mode when you are ready.
+            Put one microphone near the table, keep the main rulebook grounded, and use the same play
+            surface each time you continue the session.
           </p>
         </div>
 
         <div className="play-hero__actions">
-          {primaryRulebook ? (
+          {primaryRulebookReady ? (
             <Link className="button button--primary" href={`/session/${gameSession.slug}`}>
-              {gameSession.status === 'live' ? 'Continue with VAD' : 'Start with VAD'}
+              {gameSession.status === 'live' ? 'Continue table voice' : 'Start table voice'}
             </Link>
           ) : (
             <a className="button button--primary" href="#library">
-              Upload a primary rulebook
+              {primaryRulebookIndexing ? 'Wait for main rulebook' : 'Upload a main rulebook'}
             </a>
-          )}
-          {!primaryRulebook && (
-            <Link className="button button--ghost" href={`/session/${gameSession.slug}`}>
-              Open voice anyway
-            </Link>
           )}
           <Link className="button button--ghost" href="/">
             Back to home
@@ -81,14 +78,16 @@ export default async function PlayPage() {
           </div>
 
           <p className="game-card__lede">
-            {primaryRulebook
-              ? `Primary rulings come from ${primaryRulebook.title}. Supporting books are synced automatically before voice starts.`
-              : 'Upload a primary rulebook to ground the game. You can still open the voice surface before the library is complete.'}
+            {primaryRulebookReady
+              ? `Main rulings come from ${primaryRulebook?.title}. Supporting books join automatically, and the table roster is confirmed before voice starts.`
+              : primaryRulebookIndexing
+                ? `${primaryRulebook?.title} is still indexing. Voice stays locked until the main rulebook is ready.`
+                : 'Upload a main rulebook to ground the session before voice starts.'}
           </p>
 
           <div className="game-card__facts">
             <div>
-              <span>Primary</span>
+              <span>Main book</span>
               <strong>{primaryRulebook?.title || 'Not set yet'}</strong>
             </div>
             <div>
@@ -104,18 +103,22 @@ export default async function PlayPage() {
               <strong>{readyBooks.length}</strong>
             </div>
             <div>
+              <span>Main book status</span>
+              <strong>{primaryRulebookReady ? 'Ready' : primaryRulebookIndexing ? 'Indexing' : 'Missing'}</strong>
+            </div>
+            <div>
               <span>Voice mode</span>
               <strong>Auto VAD</strong>
             </div>
           </div>
 
           <div className="game-card__notes">
-            <h3>Before you enter voice</h3>
+            <h3>Before you enter the table</h3>
             <ul>
-              <li>Keep one primary rulebook selected.</li>
+              <li>Keep one main rulebook ready before you open voice.</li>
               <li>Only active books are injected into the running game.</li>
-              <li>Supporting books can be swapped without rebuilding the game manually.</li>
-              <li>If multiple human players are present, you will confirm who is speaking inside the session.</li>
+              <li>Put one device near the center of the real table.</li>
+              <li>Name the people around the microphone before the scene begins.</li>
             </ul>
           </div>
         </article>

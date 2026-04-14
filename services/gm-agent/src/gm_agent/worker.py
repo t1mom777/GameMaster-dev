@@ -59,12 +59,30 @@ def build_tts(runtime: SessionContext):
 
 class GameMasterAgent(Agent):
     def __init__(self, *, room_name: str, runtime: SessionContext, control_plane: ControlPlaneClient) -> None:
+        table_roster = ""
+        if runtime.table_roster:
+            table_lines = []
+            for entry in runtime.table_roster:
+                label = entry.get("label", "Seat")
+                name = entry.get("name", "Unknown player")
+                notes = entry.get("speakingNotes", "").strip()
+                table_lines.append(f"{label}: {name}" + (f" ({notes})" if notes else ""))
+
+            table_roster = "\n".join(
+                [
+                    "Shared microphone roster:",
+                    *table_lines,
+                    "Everyone at the real table shares one device and one microphone. Use these names when addressing players and be explicit when speaker attribution is uncertain.",
+                ],
+            )
+
         instructions = "\n\n".join(
             segment
             for segment in [
                 runtime.system_prompt,
                 runtime.welcome_text,
                 f"Session title: {runtime.session_title}.",
+                table_roster,
                 "Use the consult_rulebooks tool whenever a player asks about mechanics, edge cases, or lore covered by the active books.",
                 "Keep responses concise, speakable, and dramatic enough for a live tabletop session.",
             ]
