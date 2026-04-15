@@ -40,20 +40,42 @@ def build_deepgram_tts_model(runtime: SessionContext) -> str:
     return configured_model or configured_voice or "aura-2-thalia-en"
 
 
+def build_openai_tts_voice(runtime: SessionContext) -> str:
+    configured_voice = (runtime.runtime_defaults.tts_voice or "").strip().lower()
+    supported_voices = {
+        "alloy",
+        "ash",
+        "ballad",
+        "coral",
+        "echo",
+        "sage",
+        "shimmer",
+        "verse",
+    }
+    return configured_voice if configured_voice in supported_voices else "alloy"
+
+
 def build_tts(runtime: SessionContext):
     if runtime.runtime_defaults.tts_provider == "openai":
         return openai.TTS(
             model=runtime.runtime_defaults.tts_model or "gpt-4o-mini-tts",
-            voice=runtime.runtime_defaults.tts_voice or "alloy",
+            voice=build_openai_tts_voice(runtime),
         )
 
     try:
-        return deepgram.TTS(model=build_deepgram_tts_model(runtime))
+        # Deepgram TTS has been unreliable in the production worker path.
+        # Keep the provider setting for future recovery, but speak through
+        # the OpenAI TTS backend until the streaming issue is resolved.
+        logger.warning("Deepgram TTS is falling back to OpenAI TTS in the current production worker.")
+        return openai.TTS(
+            model="gpt-4o-mini-tts",
+            voice=build_openai_tts_voice(runtime),
+        )
     except TypeError:
         logger.warning("Deepgram TTS init failed; falling back to OpenAI TTS.")
         return openai.TTS(
             model="gpt-4o-mini-tts",
-            voice=runtime.runtime_defaults.tts_voice or "alloy",
+            voice=build_openai_tts_voice(runtime),
         )
 
 
@@ -94,13 +116,14 @@ class GameMasterAgent(Agent):
         self._runtime = runtime
 
     async def on_enter(self) -> None:
-        greeting = (
-            self._runtime.runtime_defaults.join_greeting
-            or f"Welcome to {self._runtime.session_title}. Open with a strong first scene and invite the players to act."
+        opening_line = (
+            self._runtime.welcome_text.strip()
+            if self._runtime.welcome_text.strip()
+            else f"Welcome to {self._runtime.session_title}. The table is live. Tell me what the players do first."
         )
-        logger.info("Generating non-interruptible join greeting for room %s", self._room_name)
-        self.session.generate_reply(
-            instructions=greeting,
+        logger.info("Speaking deterministic join greeting for room %s", self._room_name)
+        self.session.say(
+            opening_line,
             allow_interruptions=False,
         )
 
