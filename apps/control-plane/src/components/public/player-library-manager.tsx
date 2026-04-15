@@ -79,6 +79,34 @@ function normalizeLibraryMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
+function buildUploadFormData(input: {
+  file: File
+  role: 'primary-rulebook' | 'supporting-book'
+  title: string
+  documentId: string
+}): FormData {
+  const formData = new FormData()
+  formData.append('file', input.file)
+  formData.append('role', input.role)
+  if (input.title.trim()) {
+    formData.append('title', input.title.trim())
+  }
+  if (input.documentId) {
+    formData.append('documentId', input.documentId)
+  }
+  return formData
+}
+
+function shouldRetryWithMaterializedFile(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return /requested file could not be read|failed to fetch|permission problems|reference to a file was acquired/i.test(
+    error.message,
+  )
+}
+
 async function materializeUploadFile(input: File): Promise<File> {
   try {
     const buffer = await input.arrayBuffer()
@@ -94,6 +122,23 @@ async function materializeUploadFile(input: File): Promise<File> {
       ),
     )
   }
+}
+
+async function submitUpload(formData: FormData): Promise<LibraryResponse> {
+  const response = await fetch('/api/gm/public/player-library', {
+    body: formData,
+    method: 'POST',
+  })
+
+  const payload = await readApiPayload<LibraryResponse>(
+    response,
+    'Unable to update your library.',
+  )
+  if (!response.ok) {
+    throw new Error(payload.message || 'Unable to update your library.')
+  }
+
+  return payload
 }
 
 export function PlayerLibraryManager() {
@@ -172,28 +217,31 @@ export function PlayerLibraryManager() {
     setMessage(null)
 
     try {
-      const uploadFile = await materializeUploadFile(selectedFile)
-      const formData = new FormData()
-      formData.append('file', uploadFile)
-      formData.append('role', selectedRole)
-      if (title.trim()) {
-        formData.append('title', title.trim())
-      }
-      if (replaceDocumentId) {
-        formData.append('documentId', replaceDocumentId)
-      }
+      let payload: LibraryResponse
 
-      const response = await fetch('/api/gm/public/player-library', {
-        body: formData,
-        method: 'POST',
-      })
+      try {
+        payload = await submitUpload(
+          buildUploadFormData({
+            documentId: replaceDocumentId,
+            file: selectedFile,
+            role: selectedRole,
+            title,
+          }),
+        )
+      } catch (error) {
+        if (!shouldRetryWithMaterializedFile(error)) {
+          throw error
+        }
 
-      const payload = await readApiPayload<LibraryResponse>(
-        response,
-        'Unable to update your library.',
-      )
-      if (!response.ok) {
-        throw new Error(payload.message || 'Unable to update your library.')
+        const uploadFile = await materializeUploadFile(selectedFile)
+        payload = await submitUpload(
+          buildUploadFormData({
+            documentId: replaceDocumentId,
+            file: uploadFile,
+            role: selectedRole,
+            title,
+          }),
+        )
       }
 
       setBooks(payload.books || [])
