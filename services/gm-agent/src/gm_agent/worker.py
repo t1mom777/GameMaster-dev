@@ -122,7 +122,7 @@ class GameMasterAgent(Agent):
             else f"Welcome to {self._runtime.session_title}. The table is live. Tell me what the players do first."
         )
         logger.info("Speaking deterministic join greeting for room %s", self._room_name)
-        self.session.say(
+        await self.session.say(
             opening_line,
             allow_interruptions=False,
         )
