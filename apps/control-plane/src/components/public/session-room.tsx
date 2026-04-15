@@ -423,12 +423,17 @@ export function SessionRoom(props: SessionRoomProps) {
     if (!audio) {
       audio = document.createElement('audio')
       audio.autoplay = true
+      audio.muted = false
+      audio.setAttribute('playsinline', 'true')
       audio.dataset.trackSid = sid
       document.body.appendChild(audio)
       audioElementsRef.current.set(sid, audio)
     }
 
     track.attach(audio)
+    void audio.play().catch((playbackError) => {
+      console.warn('Unable to start remote room audio playback.', playbackError)
+    })
   }
 
   function detachAudio(sid: string, track?: RemoteTrack) {
