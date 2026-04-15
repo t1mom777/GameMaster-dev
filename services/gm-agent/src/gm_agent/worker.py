@@ -98,7 +98,11 @@ class GameMasterAgent(Agent):
             self._runtime.runtime_defaults.join_greeting
             or f"Welcome to {self._runtime.session_title}. Open with a strong first scene and invite the players to act."
         )
-        self.session.generate_reply(instructions=greeting)
+        logger.info("Generating non-interruptible join greeting for room %s", self._room_name)
+        self.session.generate_reply(
+            instructions=greeting,
+            allow_interruptions=False,
+        )
 
     @function_tool
     async def consult_rulebooks(self, context: RunContext, question: str) -> str:

@@ -79,6 +79,23 @@ function normalizeLibraryMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
+async function materializeUploadFile(input: File): Promise<File> {
+  try {
+    const buffer = await input.arrayBuffer()
+    return new File([buffer], input.name, {
+      lastModified: input.lastModified,
+      type: input.type || 'application/octet-stream',
+    })
+  } catch (error) {
+    throw new Error(
+      normalizeLibraryMessage(
+        error,
+        'The selected book could not be read from this device. Copy it to a local folder and try again.',
+      ),
+    )
+  }
+}
+
 export function PlayerLibraryManager() {
   const [books, setBooks] = useState<LibraryBook[]>([])
   const [title, setTitle] = useState('')
@@ -155,8 +172,9 @@ export function PlayerLibraryManager() {
     setMessage(null)
 
     try {
+      const uploadFile = await materializeUploadFile(selectedFile)
       const formData = new FormData()
-      formData.append('file', selectedFile)
+      formData.append('file', uploadFile)
       formData.append('role', selectedRole)
       if (title.trim()) {
         formData.append('title', title.trim())
