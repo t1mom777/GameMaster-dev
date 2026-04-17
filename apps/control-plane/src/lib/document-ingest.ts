@@ -5,7 +5,7 @@ import pdfParse from 'pdf-parse'
 import type { Payload, PayloadRequest } from 'payload'
 
 import { normalizeDocumentToMarkdown } from './document-markdown'
-import { embedText } from './embeddings'
+import { embedTexts } from './embeddings'
 import { ensureKnowledgeCollection, getQdrantClient, getQdrantCollection } from './qdrant'
 
 type DocumentRecord = {
@@ -320,9 +320,16 @@ export async function ingestDocument(
     throw new Error('No extractable text was found in the uploaded document.')
   }
 
+  await patchIngestProgress(payload, document.id, 'chunking', 56, req)
   await patchIngestProgress(payload, document.id, 'embedding', 68, req)
-  const firstEmbedding = await embedText(chunks[0]!)
-  await ensureKnowledgeCollection(firstEmbedding.length)
+  const vectors = await embedTexts(chunks)
+  const firstVector = vectors[0]
+
+  if (!firstVector?.length) {
+    throw new Error('No embeddings were generated for this document.')
+  }
+
+  await ensureKnowledgeCollection(firstVector.length)
 
   const client = getQdrantClient()
   const collection = getQdrantCollection()
@@ -332,14 +339,11 @@ export async function ingestDocument(
   const rulesetId = relationId(document.ruleset)
   const sessionId = relationId(document.session)
 
-  await patchIngestProgress(payload, document.id, 'chunking', 56, req)
-  const points = [firstEmbedding, ...(await Promise.all(chunks.slice(1).map((chunk) => embedText(chunk))))].map(
-    (vector, index) => ({
+  const points = vectors.map((vector, index) => ({
       id: qdrantPointId(document.id, index),
       payload: buildQdrantPayload(document, index, chunks[index] || '', rulesetId, sessionId),
       vector,
-    }),
-  )
+    }))
 
   await client.upsert(collection, {
     points,

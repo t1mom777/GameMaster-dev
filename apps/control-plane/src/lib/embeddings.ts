@@ -24,6 +24,16 @@ export function getEmbeddingModel(): string {
   return DEFAULT_MODEL
 }
 
+function chunkInputs(inputs: string[], size: number): string[][] {
+  const batches: string[][] = []
+
+  for (let index = 0; index < inputs.length; index += size) {
+    batches.push(inputs.slice(index, index + size))
+  }
+
+  return batches
+}
+
 function buildLocalEmbedding(input: string): number[] {
   const vector = new Array<number>(LOCAL_EMBEDDING_DIMENSION).fill(0)
   const tokens = input.toLowerCase().match(/[a-z0-9]+/g) ?? input.toLowerCase().split('')
@@ -49,15 +59,30 @@ function buildLocalEmbedding(input: string): number[] {
 }
 
 export async function embedText(input: string): Promise<number[]> {
+  const [embedding] = await embedTexts([input])
+  return embedding || []
+}
+
+export async function embedTexts(inputs: string[]): Promise<number[][]> {
+  if (!inputs.length) {
+    return []
+  }
+
   if (process.env.OPENAI_API_KEY) {
     try {
       const client = getOpenAIClient()
-      const response = await client.embeddings.create({
-        input,
-        model: getEmbeddingModel(),
-      })
+      const embeddings: number[][] = []
 
-      return response.data[0]?.embedding ?? []
+      for (const batch of chunkInputs(inputs, 32)) {
+        const response = await client.embeddings.create({
+          input: batch,
+          model: getEmbeddingModel(),
+        })
+
+        embeddings.push(...response.data.map((entry) => entry.embedding ?? []))
+      }
+
+      return embeddings
     } catch (error) {
       if (!warnedAboutFallback) {
         warnedAboutFallback = true
@@ -68,5 +93,5 @@ export async function embedText(input: string): Promise<number[]> {
     }
   }
 
-  return buildLocalEmbedding(input)
+  return inputs.map((input) => buildLocalEmbedding(input))
 }
