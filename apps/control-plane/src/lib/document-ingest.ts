@@ -166,6 +166,26 @@ function normalizeDocumentId(input: number | string): number | string {
   return /^\d+$/.test(input) ? Number(input) : input
 }
 
+function buildQdrantPayload(
+  document: DocumentRecord,
+  chunkIndex: number,
+  chunk: string,
+  rulesetId: string | null,
+  sessionId: string | null,
+) {
+  return {
+    chunk_index: chunkIndex,
+    content: chunk,
+    doc_id: String(document.id),
+    doc_kind: document.kind || 'supporting-book',
+    is_active: document.isActive ?? true,
+    is_primary: document.isPrimary ?? false,
+    ...(rulesetId ? { ruleset_id: rulesetId } : {}),
+    ...(sessionId ? { session_id: sessionId } : {}),
+    title: document.title || 'Untitled document',
+  }
+}
+
 async function patchDocumentRecord(
   payload: Payload,
   documentId: number | string,
@@ -195,6 +215,39 @@ async function loadDocumentRecord(
   } as never)
 
   return document as DocumentRecord
+}
+
+function describeIngestError(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    const candidate = error as Error & {
+      cause?: unknown
+      data?: unknown
+      response?: { data?: unknown; status?: number; statusText?: string }
+    }
+
+    const responseData =
+      (candidate.response && typeof candidate.response === 'object' && 'data' in candidate.response
+        ? candidate.response.data
+        : undefined) ??
+      ('data' in candidate && candidate.data ? candidate.data : undefined) ??
+      candidate.cause
+
+    if (typeof responseData === 'string' && responseData.trim()) {
+      return `${error.message}: ${responseData.trim()}`
+    }
+
+    if (responseData && typeof responseData === 'object') {
+      try {
+        return `${error.message}: ${JSON.stringify(responseData)}`
+      } catch {
+        return error.message
+      }
+    }
+
+    return error.message
+  }
+
+  return 'Unable to index this book right now.'
 }
 
 export async function markDocumentIndexing(
@@ -283,17 +336,7 @@ export async function ingestDocument(
   const points = [firstEmbedding, ...(await Promise.all(chunks.slice(1).map((chunk) => embedText(chunk))))].map(
     (vector, index) => ({
       id: qdrantPointId(document.id, index),
-      payload: {
-        chunk_index: index,
-        content: chunks[index],
-        doc_id: String(document.id),
-        doc_kind: document.kind || 'supporting-book',
-        is_active: document.isActive ?? true,
-        is_primary: document.isPrimary ?? false,
-        ruleset_id: rulesetId,
-        session_id: sessionId,
-        title: document.title || 'Untitled document',
-      },
+      payload: buildQdrantPayload(document, index, chunks[index] || '', rulesetId, sessionId),
       vector,
     }),
   )
@@ -343,7 +386,7 @@ export function queueDocumentIngest(
         await markDocumentIngestError(
           payload,
           documentId,
-          error instanceof Error ? error.message : 'Unable to index this book right now.',
+          describeIngestError(error),
         )
       } finally {
         inflightDocumentIngests.delete(inflightKey)
