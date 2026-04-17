@@ -286,7 +286,7 @@ export async function ingestDocument(
       payload: {
         chunk_index: index,
         content: chunks[index],
-        doc_id: document.id,
+        doc_id: String(document.id),
         doc_kind: document.kind || 'supporting-book',
         is_active: document.isActive ?? true,
         is_primary: document.isPrimary ?? false,
