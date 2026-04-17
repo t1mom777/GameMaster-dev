@@ -4,11 +4,14 @@ import { BookCopy, LoaderCircle, PencilLine, ShieldPlus, Star, Trash2, Upload } 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 
 import { readApiPayload } from './api-response'
+import { getBookProgressDetail, getBookProgressPercent, getOverallLibraryProgress } from './library-progress'
 
 type LibraryBook = {
   filename: string
   id: string
   ingestError: string
+  ingestPhase: string
+  ingestProgress: number | null
   isActive: boolean
   isPrimary: boolean
   kind: string
@@ -124,21 +127,59 @@ async function materializeUploadFile(input: File): Promise<File> {
   }
 }
 
-async function submitUpload(formData: FormData): Promise<LibraryResponse> {
-  const response = await fetch('/api/gm/public/player-library', {
-    body: formData,
-    method: 'POST',
+async function submitUpload(
+  formData: FormData,
+  onProgress?: (percent: number | null) => void,
+): Promise<LibraryResponse> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open('POST', '/api/gm/public/player-library')
+    request.responseType = 'text'
+    request.upload.onprogress = (event) => {
+      if (!onProgress) {
+        return
+      }
+
+      if (!event.lengthComputable || !event.total) {
+        onProgress(null)
+        return
+      }
+
+      onProgress(Math.max(1, Math.min(100, Math.round((event.loaded / event.total) * 100))))
+    }
+
+    request.onerror = () => {
+      reject(new TypeError('Failed to fetch'))
+    }
+
+    request.onload = () => {
+      const contentType = request.getResponseHeader('content-type') || ''
+      const responseText = typeof request.responseText === 'string' ? request.responseText : ''
+      let payload: (LibraryResponse & { message?: string }) | null = null
+
+      if (contentType.includes('application/json') && responseText) {
+        try {
+          payload = JSON.parse(responseText) as LibraryResponse & { message?: string }
+        } catch {
+          payload = null
+        }
+      }
+
+      if (!request.status || request.status >= 400) {
+        reject(new Error(payload?.message || 'Unable to update your library.'))
+        return
+      }
+
+      if (!payload) {
+        reject(new Error('Unable to update your library.'))
+        return
+      }
+
+      resolve(payload)
+    }
+
+    request.send(formData)
   })
-
-  const payload = await readApiPayload<LibraryResponse>(
-    response,
-    'Unable to update your library.',
-  )
-  if (!response.ok) {
-    throw new Error(payload.message || 'Unable to update your library.')
-  }
-
-  return payload
 }
 
 export function PlayerLibraryManager() {
@@ -150,6 +191,7 @@ export function PlayerLibraryManager() {
   const [renameDrafts, setRenameDrafts] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -160,6 +202,12 @@ export function PlayerLibraryManager() {
     () => books.some((book) => book.status === 'uploaded' || book.status === 'indexing'),
     [books],
   )
+  const pendingBooks = useMemo(
+    () => books.filter((book) => book.status === 'uploaded' || book.status === 'indexing'),
+    [books],
+  )
+  const featuredPendingBook = pendingBooks.find((book) => book.isPrimary) || pendingBooks[0] || null
+  const overallLibraryProgress = getOverallLibraryProgress(pendingBooks, isSaving, uploadProgress)
 
   async function refreshLibrary(options?: { silent?: boolean }) {
     if (!options?.silent) {
@@ -214,6 +262,7 @@ export function PlayerLibraryManager() {
     }
 
     setIsSaving(true)
+    setUploadProgress(0)
     setMessage(null)
 
     try {
@@ -227,6 +276,7 @@ export function PlayerLibraryManager() {
             role: selectedRole,
             title,
           }),
+          setUploadProgress,
         )
       } catch (error) {
         if (!shouldRetryWithMaterializedFile(error)) {
@@ -241,6 +291,7 @@ export function PlayerLibraryManager() {
             role: selectedRole,
             title,
           }),
+          setUploadProgress,
         )
       }
 
@@ -261,10 +312,12 @@ export function PlayerLibraryManager() {
           ? 'The book was replaced. The library will keep refreshing while processing finishes.'
           : 'The book was added. The library will keep refreshing while processing finishes.',
       )
+      setUploadProgress(100)
     } catch (error) {
       setMessage(normalizeLibraryMessage(error, 'Unable to update your library.'))
     } finally {
       setIsSaving(false)
+      setUploadProgress(null)
     }
   }
 
@@ -345,17 +398,33 @@ export function PlayerLibraryManager() {
         rulebook is ready, and active books sync into the shared-mic session automatically.
       </p>
 
-      {isSaving && (
-        <div className="status-line">
-          <LoaderCircle className="spin" size={16} />
-          Uploading the selected file to the library. Keep this tab open until the upload finishes.
-        </div>
-      )}
+      {(isSaving || hasPendingBooks) && (
+        <div className="library-progress-card">
+          <div className="library-progress-card__header">
+            <div>
+              <strong>{isSaving ? 'Uploading book' : 'Indexing library book'}</strong>
+              <p>
+                {isSaving
+                  ? 'Keep this tab open until the upload finishes. Indexing starts immediately after the file is stored.'
+                  : featuredPendingBook
+                    ? getBookProgressDetail(featuredPendingBook)
+                    : 'Processing is still running in the background.'}
+              </p>
+            </div>
+            <span>{overallLibraryProgress}%</span>
+          </div>
 
-      {hasPendingBooks && (
-        <div className="status-line">
-          <LoaderCircle className="spin" size={16} />
-          Processing is still running. Each book is parsed, normalized to Markdown, and indexed automatically.
+          <div aria-hidden="true" className="progress-track progress-track--large">
+            <div
+              className={`progress-fill ${isSaving ? 'progress-fill--accent' : 'progress-fill--signal'}`}
+              style={{ width: `${overallLibraryProgress}%` }}
+            />
+          </div>
+
+          <div className="subtle-note">
+            Uploading shows real browser transfer progress. Indexing is estimated from the live document state and
+            refreshes automatically until the book is ready.
+          </div>
         </div>
       )}
 
@@ -420,6 +489,21 @@ export function PlayerLibraryManager() {
                   <strong>{book.lastIngestedAt ? formatTimestamp(book.lastIngestedAt) : 'Pending'}</strong>
                 </div>
               </div>
+
+              {(book.status === 'uploaded' || book.status === 'indexing') && (
+                <div className="library-item__progress">
+                  <div className="library-item__progress-meta">
+                    <span>{getBookProgressDetail(book)}</span>
+                    <strong>{getBookProgressPercent(book)}%</strong>
+                  </div>
+                  <div aria-hidden="true" className="progress-track">
+                    <div
+                      className={`progress-fill ${book.status === 'uploaded' ? 'progress-fill--accent' : 'progress-fill--signal'}`}
+                      style={{ width: `${getBookProgressPercent(book)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {book.ingestError && <div className="notice-card">{book.ingestError}</div>}
 

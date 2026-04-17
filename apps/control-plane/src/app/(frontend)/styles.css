@@ -765,6 +765,73 @@ button {
   padding: 14px 16px;
 }
 
+.library-progress-card,
+.library-item__progress {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.library-progress-card__header,
+.library-item__progress-meta {
+  align-items: end;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.library-progress-card__header strong,
+.library-item__progress-meta strong {
+  font-size: 1rem;
+}
+
+.library-progress-card__header p,
+.library-item__progress-meta span {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.progress-track {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-track--large {
+  height: 14px;
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, rgba(230, 194, 119, 0.45), rgba(230, 194, 119, 0.95));
+  border-radius: inherit;
+  height: 100%;
+  position: relative;
+  transition: width 220ms ease;
+}
+
+.progress-fill::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  content: '';
+  inset: 0;
+  position: absolute;
+  transform: translateX(-100%);
+  animation: progress-glint 1.6s linear infinite;
+}
+
+.progress-fill--signal {
+  background: linear-gradient(90deg, rgba(129, 216, 203, 0.48), rgba(129, 216, 203, 0.94));
+}
+
+.progress-fill--accent {
+  background: linear-gradient(90deg, rgba(230, 194, 119, 0.42), rgba(230, 194, 119, 0.95));
+}
+
 .notice-card--muted {
   color: var(--muted);
 }
@@ -944,6 +1011,16 @@ button {
   }
 }
 
+@keyframes progress-glint {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(220%);
+  }
+}
+
 @media (max-width: 1100px) {
   .hero,
   .play-hero,
@@ -1007,6 +1084,8 @@ button {
   .library-item__topline,
   .library-item__actions,
   .library-item__meta,
+  .library-progress-card__header,
+  .library-item__progress-meta,
   .console-card__header,
   .library-card__header,
   .game-card__header,

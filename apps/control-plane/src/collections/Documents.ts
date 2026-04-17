@@ -116,6 +116,20 @@ export const Documents: CollectionConfig = {
       admin: {
         readOnly: true,
       },
+      name: 'ingestPhase',
+      type: 'text',
+    },
+    {
+      admin: {
+        readOnly: true,
+      },
+      name: 'ingestProgress',
+      type: 'number',
+    },
+    {
+      admin: {
+        readOnly: true,
+      },
       name: 'lastIngestedAt',
       type: 'date',
     },

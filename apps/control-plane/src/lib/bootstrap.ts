@@ -152,6 +152,8 @@ async function upsertSeedDocument(
           slug = ${document.slug},
           kind = ${String(extraData.kind || 'supporting-book')},
           status = ${String(extraData.status || 'uploaded')},
+          ingest_phase = 'queued',
+          ingest_progress = 12,
           is_active = ${extraData.isActive !== false},
           is_primary = ${Boolean(extraData.isPrimary)},
           ruleset_id = ${rulesetId ? Number(rulesetId) : null},
@@ -173,6 +175,8 @@ async function upsertSeedDocument(
           slug,
           kind,
           status,
+          ingest_phase,
+          ingest_progress,
           is_active,
           is_primary,
           ruleset_id,
@@ -186,6 +190,8 @@ async function upsertSeedDocument(
           ${document.slug},
           ${String(extraData.kind || 'supporting-book')},
           ${String(extraData.status || 'uploaded')},
+          'queued',
+          12,
           ${extraData.isActive !== false},
           ${Boolean(extraData.isPrimary)},
           ${rulesetId ? Number(rulesetId) : null},
@@ -355,7 +361,9 @@ export async function ensureSchemaRepairs(payload: Payload) {
     drizzle: db.drizzle,
     sql: sql`
       ALTER TABLE documents
-      ADD COLUMN IF NOT EXISTS owner_player_id integer
+      ADD COLUMN IF NOT EXISTS owner_player_id integer,
+      ADD COLUMN IF NOT EXISTS ingest_phase text,
+      ADD COLUMN IF NOT EXISTS ingest_progress integer DEFAULT 0
     `,
   })
 

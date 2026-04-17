@@ -12,6 +12,8 @@ type DocumentRecord = {
   chunkCount?: number | null
   filename?: string | null
   id: number | string
+  ingestPhase?: string | null
+  ingestProgress?: number | null
   isActive?: boolean | null
   isPrimary?: boolean | null
   kind?: string | null
@@ -30,6 +32,8 @@ const inflightDocumentIngests = new Set<string>()
 type DocumentStatusPatch = {
   chunkCount?: number | null
   ingestError?: string
+  ingestPhase?: string
+  ingestProgress?: number | null
   lastIngestedAt?: string
   reindexRequested?: boolean
   status?: 'error' | 'indexing' | 'ready' | 'uploaded'
@@ -124,6 +128,25 @@ function relationId(input: { id?: string | number } | string | number | null | u
   return input.id !== undefined ? String(input.id) : null
 }
 
+async function patchIngestProgress(
+  payload: Payload,
+  documentId: number | string,
+  phase: string,
+  progress: number,
+  req?: PayloadRequest,
+): Promise<void> {
+  await patchDocumentRecord(
+    payload,
+    documentId,
+    {
+      ingestPhase: phase,
+      ingestProgress: progress,
+      status: progress >= 100 ? 'ready' : 'indexing',
+    },
+    req,
+  )
+}
+
 function qdrantPointId(documentId: number | string, chunkIndex: number): number | string {
   const numericId = Number(documentId)
 
@@ -184,6 +207,8 @@ export async function markDocumentIndexing(
     documentId,
     {
       ingestError: '',
+      ingestPhase: 'queued',
+      ingestProgress: 12,
       reindexRequested: false,
       status: 'indexing',
     },
@@ -202,6 +227,8 @@ export async function markDocumentIngestError(
     documentId,
     {
       ingestError: message,
+      ingestPhase: 'failed',
+      ingestProgress: 100,
       reindexRequested: false,
       status: 'error',
     },
@@ -231,13 +258,16 @@ export async function ingestDocument(
   document: DocumentRecord,
   req?: PayloadRequest,
 ): Promise<void> {
+  await patchIngestProgress(payload, document.id, 'extracting', 22, req)
   const rawText = await extractMarkdown(document)
+  await patchIngestProgress(payload, document.id, 'normalizing', 42, req)
   const chunks = chunkText(rawText)
 
   if (!chunks.length) {
     throw new Error('No extractable text was found in the uploaded document.')
   }
 
+  await patchIngestProgress(payload, document.id, 'embedding', 68, req)
   const firstEmbedding = await embedText(chunks[0]!)
   await ensureKnowledgeCollection(firstEmbedding.length)
 
@@ -249,6 +279,7 @@ export async function ingestDocument(
   const rulesetId = relationId(document.ruleset)
   const sessionId = relationId(document.session)
 
+  await patchIngestProgress(payload, document.id, 'chunking', 56, req)
   const points = [firstEmbedding, ...(await Promise.all(chunks.slice(1).map((chunk) => embedText(chunk))))].map(
     (vector, index) => ({
       id: qdrantPointId(document.id, index),
@@ -278,6 +309,8 @@ export async function ingestDocument(
     {
       chunkCount: chunks.length,
       ingestError: '',
+      ingestPhase: 'complete',
+      ingestProgress: 100,
       lastIngestedAt: new Date().toISOString(),
       status: 'ready',
     },

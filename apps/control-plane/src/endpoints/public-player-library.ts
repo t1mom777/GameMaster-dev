@@ -65,6 +65,8 @@ function libraryResponse(library: LibraryDocumentRecord[]) {
       filename: book.filename || '',
       id: String(book.id),
       ingestError: book.ingestError || '',
+      ingestPhase: book.ingestPhase || '',
+      ingestProgress: typeof book.ingestProgress === 'number' ? book.ingestProgress : null,
       isActive: book.isActive,
       isPrimary: book.isPrimary,
       kind: book.kind,

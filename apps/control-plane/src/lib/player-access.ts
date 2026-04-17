@@ -45,6 +45,8 @@ export type LibraryDocumentRecord = {
   filename?: string | null
   id: number | string
   ingestError?: string | null
+  ingestPhase?: string | null
+  ingestProgress?: number | null
   isActive: boolean
   isPrimary: boolean
   kind: string
@@ -215,6 +217,11 @@ function toLibraryDocumentRecord(input: unknown): LibraryDocumentRecord | null {
     filename: typeof candidate.filename === 'string' ? candidate.filename : null,
     id: candidate.id as number | string,
     ingestError: typeof candidate.ingestError === 'string' ? candidate.ingestError : null,
+    ingestPhase: typeof candidate.ingestPhase === 'string' ? candidate.ingestPhase : null,
+    ingestProgress:
+      typeof candidate.ingestProgress === 'number' && Number.isFinite(candidate.ingestProgress)
+        ? candidate.ingestProgress
+        : null,
     isActive: candidate.isActive !== false,
     isPrimary: candidate.isPrimary === true || candidate.kind === 'primary-rulebook',
     kind: candidate.kind,
