@@ -2,8 +2,6 @@ import OpenAI from 'openai'
 
 const DEFAULT_MODEL = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small'
 const LOCAL_EMBEDDING_DIMENSION = 256
-
-let openaiClient: OpenAI | null = null
 let warnedAboutFallback = false
 
 function getOpenAIClient(): OpenAI {
@@ -11,13 +9,9 @@ function getOpenAIClient(): OpenAI {
     throw new Error('OPENAI_API_KEY is required for embeddings.')
   }
 
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-  }
-
-  return openaiClient
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
 }
 
 export function getEmbeddingModel(): string {
@@ -32,6 +26,54 @@ function chunkInputs(inputs: string[], size: number): string[][] {
   }
 
   return batches
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isRetriableEmbeddingError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const message = error.message.toLowerCase()
+  return (
+    message.includes('econnreset') ||
+    message.includes('epipe') ||
+    message.includes('socket hang up') ||
+    message.includes('timed out') ||
+    message.includes('timeout') ||
+    message.includes('429') ||
+    message.includes('500') ||
+    message.includes('502') ||
+    message.includes('503') ||
+    message.includes('504')
+  )
+}
+
+async function requestEmbeddingBatch(batch: string[]): Promise<number[][]> {
+  const maxAttempts = 4
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const client = getOpenAIClient()
+      const response = await client.embeddings.create({
+        input: batch,
+        model: getEmbeddingModel(),
+      })
+
+      return response.data.map((entry) => entry.embedding ?? [])
+    } catch (error) {
+      if (attempt >= maxAttempts || !isRetriableEmbeddingError(error)) {
+        throw error
+      }
+
+      await sleep(500 * attempt)
+    }
+  }
+
+  throw new Error('Embedding batch retries were exhausted.')
 }
 
 function buildLocalEmbedding(input: string): number[] {
@@ -70,16 +112,10 @@ export async function embedTexts(inputs: string[]): Promise<number[][]> {
 
   if (process.env.OPENAI_API_KEY) {
     try {
-      const client = getOpenAIClient()
       const embeddings: number[][] = []
 
-      for (const batch of chunkInputs(inputs, 32)) {
-        const response = await client.embeddings.create({
-          input: batch,
-          model: getEmbeddingModel(),
-        })
-
-        embeddings.push(...response.data.map((entry) => entry.embedding ?? []))
+      for (const batch of chunkInputs(inputs, 8)) {
+        embeddings.push(...(await requestEmbeddingBatch(batch)))
       }
 
       return embeddings
