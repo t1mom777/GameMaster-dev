@@ -4,6 +4,7 @@ import {
   GOOGLE_STATE_COOKIE,
   buildGoogleAuthUrl,
   googleStateCookieTtl,
+  isSecureRequest,
   isGooglePlayerAuthConfigured,
   sanitizeReturnTo,
   toPublicUrl,
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     name: GOOGLE_STATE_COOKIE,
     path: '/',
     sameSite: 'lax',
-    secure: request.nextUrl.protocol === 'https:',
+    secure: isSecureRequest(request.headers),
     value: cookieValue,
   })
 

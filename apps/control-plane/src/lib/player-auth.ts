@@ -235,6 +235,16 @@ export function toPublicUrl(path: string, headers?: HeaderBag): string {
   return new URL(sanitizeReturnTo(path), origin).toString()
 }
 
+export function isSecureRequest(headers?: HeaderBag): boolean {
+  const forwardedProto = readHeaderValue(headers, 'x-forwarded-proto').split(',')[0]?.trim().toLowerCase() || ''
+  if (forwardedProto) {
+    return forwardedProto === 'https'
+  }
+
+  const origin = getPublicOrigin(headers)
+  return origin.startsWith('https://')
+}
+
 export function isGooglePlayerAuthConfigured(): boolean {
   return Boolean(
     process.env.GOOGLE_CLIENT_ID?.trim() &&
@@ -297,6 +307,10 @@ export function createPlayerSessionCookieValue(session: PlayerAuthSession): stri
 }
 
 export function parseGoogleStateCookie(rawValue?: string | null): SignedGoogleState | null {
+  return decodeSigned<SignedGoogleState>(rawValue)
+}
+
+export function parseGoogleStateParam(rawValue?: string | null): SignedGoogleState | null {
   return decodeSigned<SignedGoogleState>(rawValue)
 }
 

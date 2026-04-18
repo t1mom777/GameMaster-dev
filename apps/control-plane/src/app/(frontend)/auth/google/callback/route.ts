@@ -8,6 +8,8 @@ import {
   createPlayerSessionCookieValue,
   fetchGoogleUserInfo,
   parseGoogleStateCookie,
+  parseGoogleStateParam,
+  isSecureRequest,
   sanitizeReturnTo,
   toPublicUrl,
   upsertGooglePlayer,
@@ -34,11 +36,17 @@ function redirectWithError(request: NextRequest, returnTo: string, code: string)
 export async function GET(request: NextRequest) {
   const stateCookie = request.cookies.get(GOOGLE_STATE_COOKIE)?.value
   const parsedState = parseGoogleStateCookie(stateCookie)
-  const returnTo = parsedState?.returnTo || '/'
   const code = request.nextUrl.searchParams.get('code')
   const incomingState = request.nextUrl.searchParams.get('state')
+  const parsedIncomingState = parseGoogleStateParam(incomingState)
+  const resolvedState = parsedIncomingState || parsedState
+  const returnTo = resolvedState?.returnTo || '/'
 
-  if (!parsedState || !code || !incomingState || incomingState !== stateCookie) {
+  if (!resolvedState || !code || !incomingState) {
+    return redirectWithError(request, returnTo, 'google-state')
+  }
+
+  if (parsedState && incomingState !== stateCookie) {
     return redirectWithError(request, returnTo, 'google-state')
   }
 
@@ -54,7 +62,7 @@ export async function GET(request: NextRequest) {
       name: PLAYER_AUTH_COOKIE,
       path: '/',
       sameSite: 'lax',
-      secure: request.nextUrl.protocol === 'https:',
+      secure: isSecureRequest(request.headers),
       value: createPlayerSessionCookieValue(playerSession),
     })
     response.cookies.set({
