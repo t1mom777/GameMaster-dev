@@ -34,6 +34,12 @@ def build_deepgram_tts_model(runtime: SessionContext) -> str:
     configured_model = (runtime.runtime_defaults.tts_model or "").strip()
     configured_voice = (runtime.runtime_defaults.tts_voice or "").strip()
 
+    if configured_voice.startswith("aura-"):
+        return configured_voice
+
+    if configured_model and configured_voice and configured_voice.startswith(f"{configured_model}-"):
+        return configured_voice
+
     if configured_model and configured_voice and configured_voice not in configured_model:
         return f"{configured_model}-{configured_voice}"
 
@@ -119,6 +125,9 @@ class GameMasterAgent(Agent):
                 runtime.welcome_text,
                 f"Session title: {runtime.session_title}.",
                 table_roster,
+                f"Voice delivery profile: {runtime.runtime_defaults.tts_instructions.strip()}."
+                if runtime.runtime_defaults.tts_instructions.strip()
+                else "",
                 "Use the consult_rulebooks tool whenever a player asks about mechanics, edge cases, or lore covered by the active books.",
                 "Keep responses concise, speakable, and dramatic enough for a live tabletop session.",
             ]

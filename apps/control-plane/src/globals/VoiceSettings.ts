@@ -28,6 +28,9 @@ export const VoiceSettings: GlobalConfig = {
   },
   fields: [
     {
+      admin: {
+        description: 'The live TTS backend for player-owned sessions. Change this here, not in Runtime Defaults.',
+      },
       defaultValue: 'deepgram',
       name: 'provider',
       options: providerOptions,
@@ -35,22 +38,35 @@ export const VoiceSettings: GlobalConfig = {
       type: 'select',
     },
     {
+      admin: {
+        description: 'Voice id or model slug. For Deepgram you can use a short suffix like thalia-en or a full voice id like aura-asteria-en.',
+      },
       defaultValue: 'thalia-en',
       name: 'voice',
       required: true,
       type: 'text',
     },
     {
+      admin: {
+        description: 'Playback rate target. Use values below 1 for slower delivery.',
+      },
       defaultValue: 1,
       name: 'speed',
       required: true,
       type: 'number',
     },
     {
+      admin: {
+        description: 'Optional tonal adjustment. Keep blank unless the selected provider supports it well.',
+      },
       name: 'pitch',
       type: 'number',
     },
     {
+      admin: {
+        description:
+          'Delivery instructions that shape sentence length, punctuation, tone, and table presence. This is the main place to tune voice archetype from the admin GUI.',
+      },
       name: 'instructions',
       type: 'textarea',
     },

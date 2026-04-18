@@ -730,15 +730,16 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
       apiKey: process.env.ELEVENLABS_API_KEY || '',
       voiceId: '',
     },
-    instructions: 'Speak clearly, keep the pace conversational, and keep responses concise for live table play.',
+    instructions:
+      'Delivery archetype: calm authority, slight irony, never rushed, subtle superiority without arrogance. Use shorter sentences. Add punctuation for timing. Prefer deliberate pauses such as "You... failed the mission." or "Well. That could have gone better." Keep the performance controlled, dry, and confident.',
     openai: {
       apiKey: process.env.OPENAI_API_KEY || '',
       model: 'gpt-4o-mini-tts',
     },
     pitch: null,
     provider: 'deepgram',
-    speed: 1,
-    voice: 'thalia-en',
+    speed: 0.9,
+    voice: 'aura-asteria-en',
   })
 
   await upsertGlobal(payload, 'site-settings', {

@@ -78,6 +78,21 @@ function getProviderConfig(globalSettings: VoiceSettingsGlobal, provider: TTSPro
   return globalSettings.deepgram || {}
 }
 
+function buildDeepgramVoiceModel(model: string, voice: string): string {
+  const trimmedModel = asText(model)
+  const trimmedVoice = asText(voice)
+
+  if (!trimmedVoice) {
+    return trimmedModel || 'aura-2'
+  }
+
+  if (trimmedVoice.startsWith('aura-') || (trimmedModel && trimmedVoice.startsWith(`${trimmedModel}-`))) {
+    return trimmedVoice
+  }
+
+  return trimmedModel ? `${trimmedModel}-${trimmedVoice}` : trimmedVoice
+}
+
 async function requireOk(response: Response, provider: TTSProvider) {
   if (response.ok) {
     return
@@ -126,7 +141,7 @@ const providerMap: Record<TTSProvider, ProviderHandler> = {
       throw new Error('Deepgram TTS API key is missing in voice-settings.')
     }
 
-    const voiceModel = settings.voice ? `${model}-${settings.voice}` : model
+    const voiceModel = buildDeepgramVoiceModel(model, settings.voice)
     const response = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(voiceModel)}`, {
       body: JSON.stringify({ text }),
       headers: {

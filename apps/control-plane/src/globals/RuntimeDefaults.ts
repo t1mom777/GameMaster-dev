@@ -48,6 +48,9 @@ export const RuntimeDefaults: GlobalConfig = {
       type: 'text',
     },
     {
+      admin: {
+        condition: () => false,
+      },
       defaultValue: 'deepgram',
       name: 'ttsProvider',
       options: [
@@ -57,11 +60,17 @@ export const RuntimeDefaults: GlobalConfig = {
       type: 'select',
     },
     {
+      admin: {
+        condition: () => false,
+      },
       defaultValue: 'aura-2',
       name: 'ttsModel',
       type: 'text',
     },
     {
+      admin: {
+        condition: () => false,
+      },
       defaultValue: 'thalia-en',
       name: 'ttsVoice',
       type: 'text',
