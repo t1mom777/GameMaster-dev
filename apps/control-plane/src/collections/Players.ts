@@ -191,6 +191,68 @@ export const Players: CollectionConfig = {
       type: 'select',
     },
     {
+      name: 'ttsSettings',
+      type: 'group',
+      fields: [
+        {
+          defaultValue: true,
+          name: 'useGlobalSettings',
+          type: 'checkbox',
+        },
+        {
+          admin: {
+            condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+          },
+          defaultValue: 'deepgram',
+          name: 'provider',
+          options: [
+            {
+              label: 'OpenAI',
+              value: 'openai',
+            },
+            {
+              label: 'Deepgram',
+              value: 'deepgram',
+            },
+            {
+              label: 'ElevenLabs',
+              value: 'elevenlabs',
+            },
+          ],
+          required: true,
+          type: 'select',
+        },
+        {
+          admin: {
+            condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+          },
+          name: 'voice',
+          type: 'text',
+        },
+        {
+          admin: {
+            condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+          },
+          name: 'speed',
+          type: 'number',
+        },
+        {
+          admin: {
+            condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+          },
+          name: 'pitch',
+          type: 'number',
+        },
+        {
+          admin: {
+            condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+          },
+          name: 'instructions',
+          type: 'textarea',
+        },
+      ],
+    },
+    {
       name: 'lastSeenAt',
       type: 'date',
     },

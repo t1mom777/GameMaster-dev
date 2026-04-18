@@ -35,6 +35,7 @@ import { runtimeSessionEndpoint } from './endpoints/runtime-session'
 import { QuotaDefaults } from './globals/QuotaDefaults'
 import { RuntimeDefaults } from './globals/RuntimeDefaults'
 import { SiteSettings } from './globals/SiteSettings'
+import { VoiceSettings } from './globals/VoiceSettings'
 import { ensureSchemaRepairs } from './lib/bootstrap'
 
 const filename = fileURLToPath(import.meta.url)
@@ -75,7 +76,7 @@ export default buildConfig({
     runtimeRetrieveEndpoint,
     adminReindexDocumentEndpoint,
   ],
-  globals: [QuotaDefaults, RuntimeDefaults, SiteSettings],
+  globals: [QuotaDefaults, RuntimeDefaults, VoiceSettings, SiteSettings],
   routes: {
     admin: '/t1m0m',
   },

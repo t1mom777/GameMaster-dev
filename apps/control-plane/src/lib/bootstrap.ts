@@ -30,7 +30,7 @@ type BootstrapCollection =
   | 'rulesets'
   | 'worlds'
 
-type BootstrapGlobal = 'quota-defaults' | 'runtime-defaults' | 'site-settings'
+type BootstrapGlobal = 'quota-defaults' | 'runtime-defaults' | 'site-settings' | 'voice-settings'
 
 type BootstrapSummary = {
   adminEmail: string
@@ -719,6 +719,26 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
     monthlyVoiceMinutes: 600,
     preferredVoiceMode: 'auto-vad',
     quotaTier: 'standard',
+  })
+
+  await upsertGlobal(payload, 'voice-settings', {
+    deepgram: {
+      apiKey: process.env.DEEPGRAM_API_KEY || '',
+      model: 'aura-2',
+    },
+    elevenlabs: {
+      apiKey: process.env.ELEVENLABS_API_KEY || '',
+      voiceId: '',
+    },
+    instructions: 'Speak clearly, keep the pace conversational, and keep responses concise for live table play.',
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY || '',
+      model: 'gpt-4o-mini-tts',
+    },
+    pitch: null,
+    provider: 'deepgram',
+    speed: 1,
+    voice: 'thalia-en',
   })
 
   await upsertGlobal(payload, 'site-settings', {
