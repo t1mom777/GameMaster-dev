@@ -33,6 +33,28 @@ function redirectWithError(request: NextRequest, returnTo: string, code: string)
   return response
 }
 
+function classifyGoogleAuthError(error: unknown): string {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+
+  if (message.includes('token exchange')) {
+    return 'google-token'
+  }
+
+  if (message.includes('userinfo')) {
+    return 'google-userinfo'
+  }
+
+  if (message.includes('player')) {
+    return 'google-player'
+  }
+
+  if (message.includes('column') || message.includes('relation') || message.includes('schema')) {
+    return 'google-schema'
+  }
+
+  return 'google-failed'
+}
+
 export async function GET(request: NextRequest) {
   const stateCookie = request.cookies.get(GOOGLE_STATE_COOKIE)?.value
   const parsedState = parseGoogleStateCookie(stateCookie)
@@ -76,10 +98,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Google auth callback failed', {
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       hasCode: Boolean(code),
       hasStateCookie: Boolean(stateCookie),
       returnTo,
     })
-    return redirectWithError(request, returnTo, 'google-failed')
+    return redirectWithError(request, returnTo, classifyGoogleAuthError(error))
   }
 }

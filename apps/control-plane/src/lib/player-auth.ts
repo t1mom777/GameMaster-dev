@@ -196,6 +196,20 @@ function toPersistedPlayer(input: unknown): PersistedPlayer {
   }
 }
 
+function normalizeEmail(input?: string | null): string {
+  return typeof input === 'string' ? input.trim().toLowerCase() : ''
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  return (
+    message.includes('duplicate key') ||
+    message.includes('already exists') ||
+    message.includes('unique constraint') ||
+    message.includes('violates unique constraint')
+  )
+}
+
 export function sanitizeReturnTo(input?: string | null): string {
   if (!input || !input.startsWith('/')) {
     return '/'
@@ -379,7 +393,8 @@ export async function fetchGoogleUserInfo(code: string): Promise<GoogleUserInfo>
 }
 
 export async function upsertGooglePlayer(payload: Payload, profile: GoogleUserInfo): Promise<PlayerAuthSession> {
-  const existing = await payload.find({
+  const normalizedEmail = normalizeEmail(profile.email)
+  const existingByGoogleSub = await payload.find({
     collection: 'players',
     depth: 0,
     limit: 1,
@@ -392,29 +407,93 @@ export async function upsertGooglePlayer(payload: Payload, profile: GoogleUserIn
     },
   })
 
+  const existingByEmail =
+    !existingByGoogleSub.docs[0] && normalizedEmail
+      ? await payload.find({
+          collection: 'players',
+          depth: 0,
+          limit: 1,
+          overrideAccess: true,
+          pagination: false,
+          where: {
+            email: {
+              equals: normalizedEmail,
+            },
+          },
+        })
+      : null
+
+  const targetPlayer = existingByGoogleSub.docs[0] || existingByEmail?.docs[0] || null
+
   const nextData = {
     authProvider: 'google' as const,
     avatarUrl: profile.picture || '',
     displayName: playerDisplayName(profile),
-    email: profile.email?.trim() || '',
+    email: normalizedEmail,
     googleSub: profile.sub,
     lastSeenAt: new Date().toISOString(),
   }
 
-  const player = toPersistedPlayer(
-    existing.docs[0]
-      ? ((await payload.update({
+  let playerWriteResult: unknown
+
+  try {
+    playerWriteResult = targetPlayer
+      ? await payload.update({
           collection: 'players',
           data: nextData,
-          id: normalizePlayerId(existing.docs[0].id),
+          id: normalizePlayerId(targetPlayer.id),
           overrideAccess: true,
-        } as never)) as unknown)
-      : ((await payload.create({
+        } as never)
+      : await payload.create({
           collection: 'players',
           data: nextData,
           overrideAccess: true,
-        } as never)) as unknown),
-  )
+        } as never)
+  } catch (error) {
+    if (!isDuplicateKeyError(error)) {
+      throw error
+    }
+
+    const recovered = await payload.find({
+      collection: 'players',
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      pagination: false,
+      where: {
+        or: [
+          {
+            googleSub: {
+              equals: profile.sub,
+            },
+          },
+          ...(normalizedEmail
+            ? [
+                {
+                  email: {
+                    equals: normalizedEmail,
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+    })
+
+    const recoveredPlayer = recovered.docs[0]
+    if (!recoveredPlayer) {
+      throw error
+    }
+
+    playerWriteResult = await payload.update({
+      collection: 'players',
+      data: nextData,
+      id: normalizePlayerId(recoveredPlayer.id),
+      overrideAccess: true,
+    } as never)
+  }
+
+  const player = toPersistedPlayer(playerWriteResult)
 
   return {
     authProvider: 'google',

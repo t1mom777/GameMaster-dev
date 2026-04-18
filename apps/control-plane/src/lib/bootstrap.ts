@@ -494,6 +494,54 @@ export async function ensureSchemaRepairs(payload: Payload) {
   await db.execute({
     drizzle: db.drizzle,
     sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS tts_settings_use_global_settings boolean DEFAULT true
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS tts_settings_provider varchar(32)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS tts_settings_voice text
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS tts_settings_speed numeric
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS tts_settings_pitch numeric
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE players
+      ADD COLUMN IF NOT EXISTS tts_settings_instructions text
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
       CREATE INDEX IF NOT EXISTS players_personal_rulebook_id_idx
       ON players (personal_rulebook_id)
     `,
@@ -519,7 +567,59 @@ export async function ensureSchemaRepairs(payload: Payload) {
         quota_tier = COALESCE(quota_tier, 'standard'),
         monthly_session_quota = COALESCE(monthly_session_quota, 12),
         monthly_voice_minutes = COALESCE(monthly_voice_minutes, 600),
-        can_create_rooms = COALESCE(can_create_rooms, false)
+        can_create_rooms = COALESCE(can_create_rooms, false),
+        tts_settings_use_global_settings = COALESCE(tts_settings_use_global_settings, true)
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE TABLE IF NOT EXISTS voice_settings (
+        id integer PRIMARY KEY DEFAULT 1,
+        provider varchar(32) DEFAULT 'deepgram',
+        voice text DEFAULT 'thalia-en',
+        speed numeric DEFAULT 1,
+        pitch numeric,
+        instructions text,
+        openai_api_key text,
+        openai_model text,
+        deepgram_api_key text,
+        deepgram_model text,
+        elevenlabs_api_key text,
+        elevenlabs_voice_id text,
+        updated_at timestamp with time zone DEFAULT now(),
+        created_at timestamp with time zone DEFAULT now()
+      )
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE voice_settings
+      ADD COLUMN IF NOT EXISTS provider varchar(32) DEFAULT 'deepgram',
+      ADD COLUMN IF NOT EXISTS voice text DEFAULT 'thalia-en',
+      ADD COLUMN IF NOT EXISTS speed numeric DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS pitch numeric,
+      ADD COLUMN IF NOT EXISTS instructions text,
+      ADD COLUMN IF NOT EXISTS openai_api_key text,
+      ADD COLUMN IF NOT EXISTS openai_model text,
+      ADD COLUMN IF NOT EXISTS deepgram_api_key text,
+      ADD COLUMN IF NOT EXISTS deepgram_model text,
+      ADD COLUMN IF NOT EXISTS elevenlabs_api_key text,
+      ADD COLUMN IF NOT EXISTS elevenlabs_voice_id text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now()
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      INSERT INTO voice_settings (id)
+      VALUES (1)
+      ON CONFLICT (id) DO NOTHING
     `,
   })
 }
