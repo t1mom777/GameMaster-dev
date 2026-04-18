@@ -831,15 +831,15 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
       voiceId: '',
     },
     instructions:
-      'Delivery archetype: calm authority, slight irony, never rushed, subtle superiority without arrogance. Use shorter sentences. Add punctuation for timing. Prefer deliberate pauses such as "You... failed the mission." or "Well. That could have gone better." Keep the performance controlled, dry, and confident.',
+      'Use an original voice profile with restrained authority, dry intelligence, and understated wit. Keep the cadence measured and precise. Favor shorter sentences, deliberate pauses, and crisp punctuation for timing. Let the delivery feel observant, faintly sardonic, and slightly world-weary without becoming theatrical, exaggerated, or cartoonish. Stay controlled, low-drama, and confident under pressure.',
     openai: {
       apiKey: process.env.OPENAI_API_KEY || '',
       model: 'gpt-4o-mini-tts',
     },
-    pitch: null,
-    provider: 'deepgram',
+    pitch: -1,
+    provider: 'openai',
     speed: 0.9,
-    voice: 'aura-asteria-en',
+    voice: 'onyx',
   })
 
   await upsertGlobal(payload, 'site-settings', {
