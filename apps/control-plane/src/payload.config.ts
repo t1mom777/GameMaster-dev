@@ -32,6 +32,7 @@ import {
 import { publicSessionsEndpoint } from './endpoints/public-sessions'
 import { runtimeRetrieveEndpoint } from './endpoints/runtime-retrieve'
 import { runtimeSessionEndpoint } from './endpoints/runtime-session'
+import { QuotaDefaults } from './globals/QuotaDefaults'
 import { RuntimeDefaults } from './globals/RuntimeDefaults'
 import { SiteSettings } from './globals/SiteSettings'
 import { ensureSchemaRepairs } from './lib/bootstrap'
@@ -74,7 +75,7 @@ export default buildConfig({
     runtimeRetrieveEndpoint,
     adminReindexDocumentEndpoint,
   ],
-  globals: [RuntimeDefaults, SiteSettings],
+  globals: [QuotaDefaults, RuntimeDefaults, SiteSettings],
   routes: {
     admin: '/t1m0m',
   },

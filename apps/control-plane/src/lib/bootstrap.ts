@@ -30,7 +30,7 @@ type BootstrapCollection =
   | 'rulesets'
   | 'worlds'
 
-type BootstrapGlobal = 'runtime-defaults' | 'site-settings'
+type BootstrapGlobal = 'quota-defaults' | 'runtime-defaults' | 'site-settings'
 
 type BootstrapSummary = {
   adminEmail: string
@@ -711,6 +711,14 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
     ttsProvider: 'deepgram',
     ttsVoice: 'thalia-en',
     voiceMode: 'auto-vad',
+  })
+
+  await upsertGlobal(payload, 'quota-defaults', {
+    canCreateRooms: false,
+    monthlySessionQuota: 12,
+    monthlyVoiceMinutes: 600,
+    preferredVoiceMode: 'auto-vad',
+    quotaTier: 'standard',
   })
 
   await upsertGlobal(payload, 'site-settings', {

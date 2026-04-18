@@ -397,10 +397,7 @@ export async function upsertGooglePlayer(payload: Payload, profile: GoogleUserIn
         } as never)) as unknown)
       : ((await payload.create({
           collection: 'players',
-          data: {
-            ...nextData,
-            preferredVoiceMode: 'auto-vad',
-          },
+          data: nextData,
           overrideAccess: true,
         } as never)) as unknown),
   )

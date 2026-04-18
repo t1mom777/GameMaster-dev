@@ -15,6 +15,52 @@ export const Players: CollectionConfig = {
     group: 'People',
     useAsTitle: 'displayName',
   },
+  hooks: {
+    beforeChange: [
+      async ({ data, operation, req }) => {
+        if (operation !== 'create' || !data) {
+          return data
+        }
+
+        const defaults = (await req.payload
+          .findGlobal({
+            overrideAccess: true,
+            slug: 'quota-defaults',
+          } as never)
+          .catch(() => null)) as
+          | {
+              canCreateRooms?: boolean | null
+              monthlySessionQuota?: number | null
+              monthlyVoiceMinutes?: number | null
+              preferredVoiceMode?: string | null
+              quotaTier?: string | null
+            }
+          | null
+
+        if (defaults?.quotaTier && !data.quotaTier) {
+          data.quotaTier = defaults.quotaTier
+        }
+
+        if (typeof defaults?.monthlySessionQuota === 'number' && data.monthlySessionQuota === undefined) {
+          data.monthlySessionQuota = defaults.monthlySessionQuota
+        }
+
+        if (typeof defaults?.monthlyVoiceMinutes === 'number' && data.monthlyVoiceMinutes === undefined) {
+          data.monthlyVoiceMinutes = defaults.monthlyVoiceMinutes
+        }
+
+        if (typeof defaults?.canCreateRooms === 'boolean' && data.canCreateRooms === undefined) {
+          data.canCreateRooms = defaults.canCreateRooms
+        }
+
+        if (defaults?.preferredVoiceMode && !data.preferredVoiceMode) {
+          data.preferredVoiceMode = defaults.preferredVoiceMode
+        }
+
+        return data
+      },
+    ],
+  },
   fields: [
     {
       name: 'displayName',
