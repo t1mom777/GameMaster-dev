@@ -19,6 +19,8 @@ type VoiceSettingsGlobal = {
   voice?: string | null
 }
 
+export type VoiceSettingsOverride = Partial<VoiceSettingsGlobal>
+
 type UserTTSSettings = {
   instructions?: string | null
   pitch?: number | null
@@ -50,6 +52,7 @@ type GenerateSpeechArgs = {
   payload: Payload
   text: string
   user?: TTSUserLike | null
+  voiceSettingsOverride?: VoiceSettingsOverride | null
 }
 
 type ProviderHandler = (args: { settings: ResolvedTTSSettings; text: string }) => Promise<GeneratedSpeech>
@@ -76,6 +79,33 @@ function getProviderConfig(globalSettings: VoiceSettingsGlobal, provider: TTSPro
   }
 
   return globalSettings.deepgram || {}
+}
+
+function mergeProviderGroup(
+  baseGroup: ProviderGroup | null | undefined,
+  overrideGroup: ProviderGroup | null | undefined,
+): ProviderGroup {
+  return {
+    ...(baseGroup || {}),
+    ...(overrideGroup || {}),
+  }
+}
+
+function mergeVoiceSettings(
+  baseSettings: VoiceSettingsGlobal,
+  overrideSettings?: VoiceSettingsOverride | null,
+): VoiceSettingsGlobal {
+  if (!overrideSettings) {
+    return baseSettings
+  }
+
+  return {
+    ...baseSettings,
+    ...overrideSettings,
+    deepgram: mergeProviderGroup(baseSettings.deepgram, overrideSettings.deepgram),
+    elevenlabs: mergeProviderGroup(baseSettings.elevenlabs, overrideSettings.elevenlabs),
+    openai: mergeProviderGroup(baseSettings.openai, overrideSettings.openai),
+  }
 }
 
 function buildDeepgramVoiceModel(model: string, voice: string): string {
@@ -197,11 +227,16 @@ const providerMap: Record<TTSProvider, ProviderHandler> = {
   },
 }
 
-export async function getResolvedTTSSettings(payload: Payload, user?: TTSUserLike | null): Promise<ResolvedTTSSettings> {
-  const globalSettings = ((await payload.findGlobal({
+export async function getResolvedTTSSettings(
+  payload: Payload,
+  user?: TTSUserLike | null,
+  voiceSettingsOverride?: VoiceSettingsOverride | null,
+): Promise<ResolvedTTSSettings> {
+  const persistedGlobalSettings = ((await payload.findGlobal({
     overrideAccess: true,
     slug: 'voice-settings',
   } as never).catch(() => null)) || {}) as VoiceSettingsGlobal
+  const globalSettings = mergeVoiceSettings(persistedGlobalSettings, voiceSettingsOverride)
 
   const globalProvider = normalizeProvider(globalSettings.provider, 'deepgram')
   const userSettings = user?.ttsSettings || null
@@ -228,8 +263,8 @@ export async function getResolvedTTSSettings(payload: Payload, user?: TTSUserLik
   }
 }
 
-export async function generateSpeech({ payload, text, user }: GenerateSpeechArgs): Promise<GeneratedSpeech> {
-  const settings = await getResolvedTTSSettings(payload, user)
+export async function generateSpeech({ payload, text, user, voiceSettingsOverride }: GenerateSpeechArgs): Promise<GeneratedSpeech> {
+  const settings = await getResolvedTTSSettings(payload, user, voiceSettingsOverride)
   const provider = providerMap[settings.provider]
 
   if (!provider) {

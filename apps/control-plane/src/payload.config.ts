@@ -15,6 +15,7 @@ import { ProviderConnections } from './collections/ProviderConnections'
 import { Rulesets } from './collections/Rulesets'
 import { Worlds } from './collections/Worlds'
 import { adminReindexDocumentEndpoint } from './endpoints/admin-reindex-document'
+import { adminVoicePreviewEndpoint } from './endpoints/admin-voice-preview'
 import { healthEndpoint } from './endpoints/health'
 import { internalBootstrapEndpoint } from './endpoints/internal-bootstrap'
 import { internalDocumentStorageEndpoint } from './endpoints/internal-document-storage'
@@ -62,6 +63,7 @@ export default buildConfig({
   editor: lexicalEditor(),
   endpoints: [
     healthEndpoint,
+    adminVoicePreviewEndpoint,
     publicSessionsEndpoint,
     publicJoinEndpoint,
     publicPlayerMappingsGetEndpoint,

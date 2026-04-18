@@ -72,6 +72,16 @@ export const VoiceSettings: GlobalConfig = {
     },
     {
       admin: {
+        components: {
+          Field: '@/components/admin/VoicePreviewField#VoicePreviewField',
+        },
+      },
+      label: 'Preview',
+      name: 'voicePreview',
+      type: 'ui',
+    },
+    {
+      admin: {
         condition: (_, siblingData) => siblingData?.provider === 'openai',
       },
       fields: [

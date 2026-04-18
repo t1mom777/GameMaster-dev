@@ -130,6 +130,11 @@ class GameMasterAgent(Agent):
                 else "",
                 "Use the consult_rulebooks tool whenever a player asks about mechanics, edge cases, or lore covered by the active books.",
                 "Keep responses concise, speakable, and dramatic enough for a live tabletop session.",
+                "Format spoken answers for TTS: keep most turns to one to three short sentences.",
+                "Use punctuation to control timing. Favor commas, periods, and occasional ellipses for deliberate pauses.",
+                "Prefer one clear beat per sentence. If emphasis matters, isolate it in a short sentence.",
+                "Avoid markdown, bullet lists, numbered lists, tables, bracketed stage directions, and long quoted passages in normal voice replies.",
+                "Do not sound like you are reading an essay. Sound like you are speaking across a real table.",
             ]
             if segment
         )

@@ -102,11 +102,15 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'quota-defaults': QuotaDefault;
     'runtime-defaults': RuntimeDefault;
+    'voice-settings': VoiceSetting;
     'site-settings': SiteSetting;
   };
   globalsSelect: {
+    'quota-defaults': QuotaDefaultsSelect<false> | QuotaDefaultsSelect<true>;
     'runtime-defaults': RuntimeDefaultsSelect<false> | RuntimeDefaultsSelect<true>;
+    'voice-settings': VoiceSettingsSelect<false> | VoiceSettingsSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
@@ -192,6 +196,14 @@ export interface Player {
   canCreateRooms?: boolean | null;
   accessNotes?: string | null;
   preferredVoiceMode?: ('auto-vad' | 'push-to-talk' | 'text-only') | null;
+  ttsSettings?: {
+    useGlobalSettings?: boolean | null;
+    provider?: ('openai' | 'deepgram' | 'elevenlabs') | null;
+    voice?: string | null;
+    speed?: number | null;
+    pitch?: number | null;
+    instructions?: string | null;
+  };
   lastSeenAt?: string | null;
   lastRoomName?: string | null;
   updatedAt: string;
@@ -220,6 +232,15 @@ export interface Document {
    */
   reindexRequested?: boolean | null;
   chunkCount?: number | null;
+  sourceFilename?: string | null;
+  sourceMimeType?: string | null;
+  sourceFilesize?: number | null;
+  /**
+   * Canonical normalized Markdown stored after ingest so the raw upload can be removed.
+   */
+  sourceMarkdown?: string | null;
+  ingestPhase?: string | null;
+  ingestProgress?: number | null;
   lastIngestedAt?: string | null;
   ingestError?: string | null;
   updatedAt: string;
@@ -290,6 +311,10 @@ export interface GameSession {
   campaign?: (number | null) | Campaign;
   world?: (number | null) | World;
   ruleset?: (number | null) | Ruleset;
+  /**
+   * When set, this session is the player-owned game surface for that account.
+   */
+  ownerPlayer?: (number | null) | Player;
   /**
    * Only these signed-in players can see and enter the room when the room is not open to all players.
    */
@@ -493,6 +518,16 @@ export interface PlayersSelect<T extends boolean = true> {
   canCreateRooms?: T;
   accessNotes?: T;
   preferredVoiceMode?: T;
+  ttsSettings?:
+    | T
+    | {
+        useGlobalSettings?: T;
+        provider?: T;
+        voice?: T;
+        speed?: T;
+        pitch?: T;
+        instructions?: T;
+      };
   lastSeenAt?: T;
   lastRoomName?: T;
   updatedAt?: T;
@@ -576,6 +611,12 @@ export interface DocumentsSelect<T extends boolean = true> {
   ownerPlayer?: T;
   reindexRequested?: T;
   chunkCount?: T;
+  sourceFilename?: T;
+  sourceMimeType?: T;
+  sourceFilesize?: T;
+  sourceMarkdown?: T;
+  ingestPhase?: T;
+  ingestProgress?: T;
   lastIngestedAt?: T;
   ingestError?: T;
   updatedAt?: T;
@@ -605,6 +646,7 @@ export interface GameSessionsSelect<T extends boolean = true> {
   campaign?: T;
   world?: T;
   ruleset?: T;
+  ownerPlayer?: T;
   allowedPlayers?: T;
   activeDocuments?: T;
   publicSummary?: T;
@@ -670,6 +712,35 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quota-defaults".
+ */
+export interface QuotaDefault {
+  id: number;
+  /**
+   * Default tier assigned to new players.
+   */
+  quotaTier: 'standard' | 'priority' | 'internal';
+  /**
+   * Default monthly session allowance for new players.
+   */
+  monthlySessionQuota: number;
+  /**
+   * Default monthly voice minutes for new players.
+   */
+  monthlyVoiceMinutes: number;
+  /**
+   * Whether new players can create their own rooms by default.
+   */
+  canCreateRooms?: boolean | null;
+  /**
+   * Default voice mode for new players.
+   */
+  preferredVoiceMode?: ('auto-vad' | 'push-to-talk' | 'text-only') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "runtime-defaults".
  */
 export interface RuntimeDefault {
@@ -692,6 +763,47 @@ export interface RuntimeDefault {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "voice-settings".
+ */
+export interface VoiceSetting {
+  id: number;
+  /**
+   * The live TTS backend for player-owned sessions. Change this here, not in Runtime Defaults.
+   */
+  provider: 'openai' | 'deepgram' | 'elevenlabs';
+  /**
+   * Voice id or model slug. For Deepgram you can use a short suffix like thalia-en or a full voice id like aura-asteria-en.
+   */
+  voice: string;
+  /**
+   * Playback rate target. Use values below 1 for slower delivery.
+   */
+  speed: number;
+  /**
+   * Optional tonal adjustment. Keep blank unless the selected provider supports it well.
+   */
+  pitch?: number | null;
+  /**
+   * Delivery instructions that shape sentence length, punctuation, tone, and table presence. This is the main place to tune voice archetype from the admin GUI.
+   */
+  instructions?: string | null;
+  openai?: {
+    apiKey?: string | null;
+    model?: string | null;
+  };
+  deepgram?: {
+    apiKey?: string | null;
+    model?: string | null;
+  };
+  elevenlabs?: {
+    apiKey?: string | null;
+    voiceId?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
  */
 export interface SiteSetting {
@@ -701,6 +813,20 @@ export interface SiteSetting {
   publicDescription?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quota-defaults_select".
+ */
+export interface QuotaDefaultsSelect<T extends boolean = true> {
+  quotaTier?: T;
+  monthlySessionQuota?: T;
+  monthlyVoiceMinutes?: T;
+  canCreateRooms?: T;
+  preferredVoiceMode?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -720,6 +846,38 @@ export interface RuntimeDefaultsSelect<T extends boolean = true> {
   maxParticipants?: T;
   allowTextFallback?: T;
   joinGreeting?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "voice-settings_select".
+ */
+export interface VoiceSettingsSelect<T extends boolean = true> {
+  provider?: T;
+  voice?: T;
+  speed?: T;
+  pitch?: T;
+  instructions?: T;
+  openai?:
+    | T
+    | {
+        apiKey?: T;
+        model?: T;
+      };
+  deepgram?:
+    | T
+    | {
+        apiKey?: T;
+        model?: T;
+      };
+  elevenlabs?:
+    | T
+    | {
+        apiKey?: T;
+        voiceId?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
