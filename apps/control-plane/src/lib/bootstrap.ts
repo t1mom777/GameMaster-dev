@@ -575,6 +575,135 @@ export async function ensureSchemaRepairs(payload: Payload) {
   await db.execute({
     drizzle: db.drizzle,
     sql: sql`
+      CREATE TABLE IF NOT EXISTS quota_defaults (
+        id integer PRIMARY KEY DEFAULT 1,
+        quota_tier varchar(32) DEFAULT 'standard',
+        monthly_session_quota integer DEFAULT 12,
+        monthly_voice_minutes integer DEFAULT 600,
+        can_create_rooms boolean DEFAULT false,
+        preferred_voice_mode varchar(32) DEFAULT 'auto-vad',
+        updated_at timestamp with time zone DEFAULT now(),
+        created_at timestamp with time zone DEFAULT now()
+      )
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE quota_defaults
+      ADD COLUMN IF NOT EXISTS quota_tier varchar(32) DEFAULT 'standard',
+      ADD COLUMN IF NOT EXISTS monthly_session_quota integer DEFAULT 12,
+      ADD COLUMN IF NOT EXISTS monthly_voice_minutes integer DEFAULT 600,
+      ADD COLUMN IF NOT EXISTS can_create_rooms boolean DEFAULT false,
+      ADD COLUMN IF NOT EXISTS preferred_voice_mode varchar(32) DEFAULT 'auto-vad',
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now()
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      INSERT INTO quota_defaults (id)
+      VALUES (1)
+      ON CONFLICT (id) DO NOTHING
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE TABLE IF NOT EXISTS runtime_defaults (
+        id integer PRIMARY KEY DEFAULT 1,
+        system_prompt text,
+        llm_provider varchar(32) DEFAULT 'gemini',
+        llm_model text,
+        stt_provider varchar(32) DEFAULT 'deepgram',
+        stt_model text,
+        tts_provider varchar(32) DEFAULT 'deepgram',
+        tts_model text,
+        tts_voice text,
+        voice_mode varchar(32) DEFAULT 'auto-vad',
+        retrieval_top_k integer DEFAULT 5,
+        max_participants integer DEFAULT 6,
+        allow_text_fallback boolean DEFAULT true,
+        join_greeting text,
+        updated_at timestamp with time zone DEFAULT now(),
+        created_at timestamp with time zone DEFAULT now()
+      )
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE runtime_defaults
+      ADD COLUMN IF NOT EXISTS system_prompt text,
+      ADD COLUMN IF NOT EXISTS llm_provider varchar(32) DEFAULT 'gemini',
+      ADD COLUMN IF NOT EXISTS llm_model text,
+      ADD COLUMN IF NOT EXISTS stt_provider varchar(32) DEFAULT 'deepgram',
+      ADD COLUMN IF NOT EXISTS stt_model text,
+      ADD COLUMN IF NOT EXISTS tts_provider varchar(32) DEFAULT 'deepgram',
+      ADD COLUMN IF NOT EXISTS tts_model text,
+      ADD COLUMN IF NOT EXISTS tts_voice text,
+      ADD COLUMN IF NOT EXISTS voice_mode varchar(32) DEFAULT 'auto-vad',
+      ADD COLUMN IF NOT EXISTS retrieval_top_k integer DEFAULT 5,
+      ADD COLUMN IF NOT EXISTS max_participants integer DEFAULT 6,
+      ADD COLUMN IF NOT EXISTS allow_text_fallback boolean DEFAULT true,
+      ADD COLUMN IF NOT EXISTS join_greeting text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now()
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      INSERT INTO runtime_defaults (id)
+      VALUES (1)
+      ON CONFLICT (id) DO NOTHING
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      CREATE TABLE IF NOT EXISTS site_settings (
+        id integer PRIMARY KEY DEFAULT 1,
+        site_title text DEFAULT 'GameMaster',
+        tagline text,
+        public_description text,
+        updated_at timestamp with time zone DEFAULT now(),
+        created_at timestamp with time zone DEFAULT now()
+      )
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      ALTER TABLE site_settings
+      ADD COLUMN IF NOT EXISTS site_title text DEFAULT 'GameMaster',
+      ADD COLUMN IF NOT EXISTS tagline text,
+      ADD COLUMN IF NOT EXISTS public_description text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now()
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
+      INSERT INTO site_settings (id)
+      VALUES (1)
+      ON CONFLICT (id) DO NOTHING
+    `,
+  })
+
+  await db.execute({
+    drizzle: db.drizzle,
+    sql: sql`
       CREATE TABLE IF NOT EXISTS voice_settings (
         id integer PRIMARY KEY DEFAULT 1,
         provider varchar(32) DEFAULT 'deepgram',
