@@ -52,13 +52,15 @@ export type LibraryDocumentRecord = {
   kind: string
   lastIngestedAt?: string | null
   ownerPlayerId?: string | null
+  sourceFilename?: string | null
+  sourceMarkdown?: string | null
   status?: string | null
   title: string
   updatedAt?: string | null
 }
 
 function shouldResumeDocumentIngest(document: LibraryDocumentRecord): boolean {
-  if (!document.filename) {
+  if (!document.filename && !document.sourceMarkdown?.trim()) {
     return false
   }
 
@@ -227,6 +229,8 @@ function toLibraryDocumentRecord(input: unknown): LibraryDocumentRecord | null {
     kind: candidate.kind,
     lastIngestedAt: typeof candidate.lastIngestedAt === 'string' ? candidate.lastIngestedAt : null,
     ownerPlayerId: relationshipId((candidate.ownerPlayer as RelationshipValue | undefined) || null),
+    sourceFilename: typeof candidate.sourceFilename === 'string' ? candidate.sourceFilename : null,
+    sourceMarkdown: typeof candidate.sourceMarkdown === 'string' ? candidate.sourceMarkdown : null,
     status: typeof candidate.status === 'string' ? candidate.status : null,
     title: candidate.title,
     updatedAt: typeof candidate.updatedAt === 'string' ? candidate.updatedAt : null,

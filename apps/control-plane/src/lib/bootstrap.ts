@@ -362,6 +362,10 @@ export async function ensureSchemaRepairs(payload: Payload) {
     sql: sql`
       ALTER TABLE documents
       ADD COLUMN IF NOT EXISTS owner_player_id integer,
+      ADD COLUMN IF NOT EXISTS source_filename text,
+      ADD COLUMN IF NOT EXISTS source_mime_type text,
+      ADD COLUMN IF NOT EXISTS source_filesize integer,
+      ADD COLUMN IF NOT EXISTS source_markdown text,
       ADD COLUMN IF NOT EXISTS ingest_phase text,
       ADD COLUMN IF NOT EXISTS ingest_progress integer DEFAULT 0
     `,

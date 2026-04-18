@@ -11,15 +11,22 @@ import { ensureKnowledgeCollection, getQdrantClient, getQdrantCollection } from 
 type DocumentRecord = {
   chunkCount?: number | null
   filename?: string | null
+  filesize?: number | null
   id: number | string
   ingestPhase?: string | null
   ingestProgress?: number | null
   isActive?: boolean | null
   isPrimary?: boolean | null
   kind?: string | null
+  mimeType?: string | null
   ruleset?: { id?: string | number } | string | number | null
   session?: { id?: string | number } | string | number | null
+  sourceFilename?: string | null
+  sourceFilesize?: number | null
+  sourceMarkdown?: string | null
+  sourceMimeType?: string | null
   title?: string | null
+  url?: string | null
 }
 
 type QueueDocumentIngestOptions = {
@@ -31,12 +38,20 @@ const inflightDocumentIngests = new Set<string>()
 
 type DocumentStatusPatch = {
   chunkCount?: number | null
+  filename?: string | null
+  filesize?: number | null
   ingestError?: string
   ingestPhase?: string
   ingestProgress?: number | null
   lastIngestedAt?: string
+  mimeType?: string | null
   reindexRequested?: boolean
   status?: 'error' | 'indexing' | 'ready' | 'uploaded'
+  sourceFilename?: string | null
+  sourceFilesize?: number | null
+  sourceMarkdown?: string | null
+  sourceMimeType?: string | null
+  url?: string | null
 }
 
 function resolveUploadPath(filename: string): string {
@@ -90,6 +105,10 @@ function chunkText(input: string, maxLength = 1200, overlap = 200): string[] {
 }
 
 async function extractMarkdown(document: DocumentRecord): Promise<string> {
+  if (document.sourceMarkdown?.trim()) {
+    return document.sourceMarkdown
+  }
+
   if (!document.filename) {
     throw new Error('Document is missing a file payload.')
   }
@@ -183,6 +202,21 @@ function buildQdrantPayload(
     ...(rulesetId ? { ruleset_id: rulesetId } : {}),
     ...(sessionId ? { session_id: sessionId } : {}),
     title: document.title || 'Untitled document',
+  }
+}
+
+async function deleteUploadedFile(filename?: string | null): Promise<void> {
+  if (!filename) {
+    return
+  }
+
+  try {
+    await fs.unlink(resolveUploadPath(filename))
+  } catch (error) {
+    const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : ''
+    if (code !== 'ENOENT') {
+      throw error
+    }
   }
 }
 
@@ -312,13 +346,27 @@ export async function ingestDocument(
   req?: PayloadRequest,
 ): Promise<void> {
   await patchIngestProgress(payload, document.id, 'extracting', 22, req)
-  const rawText = await extractMarkdown(document)
+  const canonicalMarkdown = await extractMarkdown(document)
   await patchIngestProgress(payload, document.id, 'normalizing', 42, req)
-  const chunks = chunkText(rawText)
+  const chunks = chunkText(canonicalMarkdown)
 
   if (!chunks.length) {
     throw new Error('No extractable text was found in the uploaded document.')
   }
+
+  await patchDocumentRecord(
+    payload,
+    document.id,
+    {
+      sourceFilename: document.sourceFilename || document.filename || null,
+      sourceFilesize:
+        typeof document.sourceFilesize === 'number' ? document.sourceFilesize : document.filesize || null,
+      sourceMarkdown: canonicalMarkdown,
+      sourceMimeType:
+        document.sourceMimeType || document.mimeType || (document.filename?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
+    },
+    req,
+  )
 
   await patchIngestProgress(payload, document.id, 'chunking', 56, req)
   await patchIngestProgress(payload, document.id, 'embedding', 68, req)
@@ -350,6 +398,8 @@ export async function ingestDocument(
     wait: true,
   })
 
+  await deleteUploadedFile(document.filename)
+
   await patchDocumentRecord(
     payload,
     document.id,
@@ -360,6 +410,14 @@ export async function ingestDocument(
       ingestProgress: 100,
       lastIngestedAt: new Date().toISOString(),
       status: 'ready',
+      ...(document.filename
+        ? {
+            filename: null,
+            filesize: null,
+            mimeType: null,
+            url: null,
+          }
+        : {}),
     },
     req,
   )

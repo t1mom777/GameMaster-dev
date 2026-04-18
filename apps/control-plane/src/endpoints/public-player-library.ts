@@ -62,7 +62,7 @@ function libraryResponse(library: LibraryDocumentRecord[]) {
 
   return {
     books: library.map((book) => ({
-      filename: book.filename || '',
+      filename: book.filename || book.sourceFilename || '',
       id: String(book.id),
       ingestError: book.ingestError || '',
       ingestPhase: book.ingestPhase || '',

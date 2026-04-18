@@ -116,6 +116,35 @@ export const Documents: CollectionConfig = {
       admin: {
         readOnly: true,
       },
+      name: 'sourceFilename',
+      type: 'text',
+    },
+    {
+      admin: {
+        readOnly: true,
+      },
+      name: 'sourceMimeType',
+      type: 'text',
+    },
+    {
+      admin: {
+        readOnly: true,
+      },
+      name: 'sourceFilesize',
+      type: 'number',
+    },
+    {
+      admin: {
+        description: 'Canonical normalized Markdown stored after ingest so the raw upload can be removed.',
+        readOnly: true,
+      },
+      name: 'sourceMarkdown',
+      type: 'textarea',
+    },
+    {
+      admin: {
+        readOnly: true,
+      },
       name: 'ingestPhase',
       type: 'text',
     },
