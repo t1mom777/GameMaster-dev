@@ -101,7 +101,44 @@ function chunkText(input: string, maxLength = 1200, overlap = 200): string[] {
     chunks.push(current)
   }
 
-  return chunks
+  return mergeSmallChunks(chunks)
+}
+
+function mergeSmallChunks(chunks: string[], minLength = 700, maxLength = 1400): string[] {
+  if (!chunks.length) {
+    return []
+  }
+
+  const merged: string[] = []
+  let current = ''
+
+  for (const chunk of chunks) {
+    if (!current) {
+      current = chunk
+      continue
+    }
+
+    const candidate = `${current}\n\n${chunk}`
+
+    if (current.length < minLength && candidate.length <= maxLength) {
+      current = candidate
+      continue
+    }
+
+    if (chunk.length < Math.floor(minLength / 2) && candidate.length <= maxLength) {
+      current = candidate
+      continue
+    }
+
+    merged.push(current)
+    current = chunk
+  }
+
+  if (current) {
+    merged.push(current)
+  }
+
+  return merged
 }
 
 async function extractMarkdown(document: DocumentRecord): Promise<string> {
