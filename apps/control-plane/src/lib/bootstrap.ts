@@ -960,7 +960,7 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
       voiceId: '',
     },
     instructions:
-      'Use an original voice profile with restrained authority, dry intelligence, and understated wit. Keep the cadence measured and precise. Favor shorter sentences, deliberate pauses, and crisp punctuation for timing. Let the delivery feel observant, faintly sardonic, and slightly world-weary without becoming theatrical, exaggerated, or cartoonish. Stay controlled, low-drama, and confident under pressure.',
+      'Use an original voice profile with cool detachment, dry intelligence, and understated wit. Speak with precise diction, measured pacing, and calm authority. Favor shorter sentences. Use pauses deliberately. Let the cadence feel clipped, observant, and faintly British-coded without becoming performative. Keep sarcasm subtle, controlled, and diagnostic rather than playful. Sound slightly tired, highly competent, and never rushed. Avoid warmth, melodrama, cartoonish emphasis, or exaggerated character acting.',
     openai: {
       apiKey: process.env.OPENAI_API_KEY || '',
       model: 'gpt-4o-mini-tts',
