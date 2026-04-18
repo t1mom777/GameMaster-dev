@@ -391,6 +391,12 @@ button {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.button--danger {
+  background: var(--danger-soft);
+  border-color: rgba(255, 157, 157, 0.28);
+  color: #ffd8d8;
+}
+
 .button--full {
   width: 100%;
 }

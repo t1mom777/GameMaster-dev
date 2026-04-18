@@ -16,9 +16,13 @@ class RuntimeDefaults:
     stt_model: str
     stt_provider: str
     system_prompt: str
+    tts_instructions: str
     tts_model: str
+    tts_pitch: float | None
     tts_provider: str
+    tts_speed: float
     tts_voice: str
+    tts_voice_id: str
     voice_mode: str
 
 
@@ -68,9 +72,13 @@ class ControlPlaneClient:
               stt_model=runtime_defaults.get("sttModel", "nova-3"),
               stt_provider=runtime_defaults.get("sttProvider", "deepgram"),
               system_prompt=runtime_defaults.get("systemPrompt", ""),
+              tts_instructions=runtime_defaults.get("ttsInstructions", ""),
               tts_model=runtime_defaults.get("ttsModel", "aura-2"),
+              tts_pitch=runtime_defaults.get("ttsPitch"),
               tts_provider=runtime_defaults.get("ttsProvider", "deepgram"),
+              tts_speed=runtime_defaults.get("ttsSpeed", 1),
               tts_voice=runtime_defaults.get("ttsVoice", "thalia-en"),
+              tts_voice_id=runtime_defaults.get("ttsVoiceId", ""),
               voice_mode=runtime_defaults.get("voiceMode", "auto-vad"),
           ),
         )

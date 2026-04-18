@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   Mic,
   MicOff,
+  OctagonX,
   Radio,
   RefreshCcw,
   Save,
@@ -227,6 +228,7 @@ export function SessionRoom(props: SessionRoomProps) {
   const [isLoadingTableSetup, setIsLoadingTableSetup] = useState(true)
   const [isSavingTableSetup, setIsSavingTableSetup] = useState(false)
   const [tableStatus, setTableStatus] = useState<string | null>(null)
+  const [conversationStatus, setConversationStatus] = useState<string | null>(null)
   const roomRef = useRef<Room | null>(null)
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map())
 
@@ -474,6 +476,7 @@ export function SessionRoom(props: SessionRoomProps) {
       setParticipantRoster([])
       setStep('preflight')
       setJoinBundle(null)
+      setMicEnabled(true)
     })
 
     await room.connect(bundle.serverUrl, bundle.token)
@@ -558,6 +561,7 @@ export function SessionRoom(props: SessionRoomProps) {
 
   async function joinSession() {
     setError(null)
+    setConversationStatus(null)
 
     if (!props.rulebookReady) {
       setError(normalizeLibraryGateMessage(props.primaryRulebookTitle))
@@ -616,6 +620,11 @@ export function SessionRoom(props: SessionRoomProps) {
     const nextState = !micEnabled
     await room.localParticipant.setMicrophoneEnabled(nextState)
     setMicEnabled(nextState)
+  }
+
+  function stopConversation() {
+    setConversationStatus('Conversation stopped. Reopen setup whenever you want to start voice again.')
+    resetRoom()
   }
 
   function resetRoom() {
@@ -885,6 +894,11 @@ export function SessionRoom(props: SessionRoomProps) {
                 {micEnabled ? 'Mute mic' : 'Unmute mic'}
               </button>
 
+              <button className="button button--danger" onClick={stopConversation} type="button">
+                <OctagonX size={18} />
+                Stop conversation
+              </button>
+
               <button className="button button--ghost" onClick={resetRoom} type="button">
                 <RefreshCcw size={18} />
                 Reopen setup
@@ -895,6 +909,7 @@ export function SessionRoom(props: SessionRoomProps) {
       )}
 
       {error && <div className="notice-card">{error}</div>}
+      {conversationStatus && <div className="notice-card notice-card--muted">{conversationStatus}</div>}
 
       <div className="participant-board">
         {visibleTableSeats.map((seat) => (

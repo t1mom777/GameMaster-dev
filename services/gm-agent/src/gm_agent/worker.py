@@ -62,11 +62,25 @@ def build_tts(runtime: SessionContext):
             voice=build_openai_tts_voice(runtime),
         )
 
+    if runtime.runtime_defaults.tts_provider == "deepgram":
+        try:
+            return deepgram.TTS(model=build_deepgram_tts_model(runtime))
+        except TypeError:
+            logger.warning("Deepgram TTS init failed; falling back to OpenAI TTS.")
+            return openai.TTS(
+                model="gpt-4o-mini-tts",
+                voice=build_openai_tts_voice(runtime),
+            )
+
+    if runtime.runtime_defaults.tts_provider == "elevenlabs":
+        logger.warning("ElevenLabs TTS is configured but not installed in the current worker image; falling back to OpenAI TTS.")
+        return openai.TTS(
+            model="gpt-4o-mini-tts",
+            voice=build_openai_tts_voice(runtime),
+        )
+
     try:
-        # Deepgram TTS has been unreliable in the production worker path.
-        # Keep the provider setting for future recovery, but speak through
-        # the OpenAI TTS backend until the streaming issue is resolved.
-        logger.warning("Deepgram TTS is falling back to OpenAI TTS in the current production worker.")
+        logger.warning("Unknown TTS provider '%s'; falling back to OpenAI TTS.", runtime.runtime_defaults.tts_provider)
         return openai.TTS(
             model="gpt-4o-mini-tts",
             voice=build_openai_tts_voice(runtime),
