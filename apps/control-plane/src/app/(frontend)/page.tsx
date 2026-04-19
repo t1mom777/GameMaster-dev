@@ -74,7 +74,24 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
             <div className="landing-minimal__actions">
               <Link className="button button--google" href={primaryHref}>
                 <span className="button__google-badge" aria-hidden="true">
-                  G
+                  <svg fill="none" viewBox="0 0 24 24">
+                    <path
+                      d="M21.805 12.23c0-.763-.068-1.495-.195-2.199H12v4.159h5.49a4.696 4.696 0 0 1-2.04 3.082v2.56h3.3c1.932-1.778 3.055-4.399 3.055-7.602Z"
+                      fill="#D9B08B"
+                    />
+                    <path
+                      d="M12 22c2.76 0 5.074-.914 6.766-2.468l-3.3-2.56c-.914.613-2.082.976-3.466.976-2.668 0-4.928-1.8-5.734-4.221H2.855v2.641A10.213 10.213 0 0 0 12 22Z"
+                      fill="#E8C9AE"
+                    />
+                    <path
+                      d="M6.266 13.727A6.14 6.14 0 0 1 5.945 12c0-.6.11-1.182.32-1.727V7.632H2.856A10.213 10.213 0 0 0 1.778 12c0 1.633.392 3.178 1.078 4.368l3.41-2.64Z"
+                      fill="#B4947B"
+                    />
+                    <path
+                      d="M12 6.05c1.5 0 2.85.517 3.913 1.532l2.937-2.937C17.07 2.99 14.756 2 12 2 7.855 2 4.253 4.386 2.855 7.632l3.41 2.64C7.071 7.85 9.331 6.05 12 6.05Z"
+                      fill="#F3E2D2"
+                    />
+                  </svg>
                 </span>
                 {primaryLabel}
               </Link>

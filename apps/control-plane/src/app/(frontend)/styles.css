@@ -393,15 +393,18 @@ button {
 
 .button__google-badge {
   align-items: center;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 233, 223, 0.92));
+  background: linear-gradient(180deg, rgba(250, 241, 233, 0.96), rgba(235, 218, 204, 0.9));
   border-radius: 999px;
-  color: #4285f4;
   display: inline-flex;
-  font-size: 1.1rem;
-  font-weight: 800;
-  height: 28px;
+  height: 30px;
   justify-content: center;
-  width: 28px;
+  width: 30px;
+}
+
+.button__google-badge svg {
+  display: block;
+  height: 16px;
+  width: 16px;
 }
 
 .landing-minimal {
