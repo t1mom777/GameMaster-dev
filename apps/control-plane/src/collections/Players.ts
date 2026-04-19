@@ -193,8 +193,15 @@ export const Players: CollectionConfig = {
     {
       name: 'ttsSettings',
       type: 'group',
+      admin: {
+        description:
+          'GM voice override for sessions owned by this player. Turn off Use global settings if this player should hear a different GM voice than the site default.',
+      },
       fields: [
         {
+          admin: {
+            description: 'Keep this on to inherit the global GM voice. Turn it off to define a player-specific override.',
+          },
           defaultValue: true,
           name: 'useGlobalSettings',
           type: 'checkbox',
@@ -202,6 +209,7 @@ export const Players: CollectionConfig = {
         {
           admin: {
             condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+            description: 'TTS provider for this player-owned GM voice.',
           },
           defaultValue: 'deepgram',
           name: 'provider',
@@ -225,6 +233,7 @@ export const Players: CollectionConfig = {
         {
           admin: {
             condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+            description: 'Voice slug for this player-owned GM voice.',
           },
           name: 'voice',
           type: 'text',
@@ -232,6 +241,7 @@ export const Players: CollectionConfig = {
         {
           admin: {
             condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+            description: 'Playback rate. Values below 1 slow the GM down.',
           },
           name: 'speed',
           type: 'number',
@@ -239,6 +249,7 @@ export const Players: CollectionConfig = {
         {
           admin: {
             condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+            description: 'Optional tonal adjustment when supported by the selected provider.',
           },
           name: 'pitch',
           type: 'number',
@@ -246,9 +257,20 @@ export const Players: CollectionConfig = {
         {
           admin: {
             condition: (_, siblingData) => siblingData?.useGlobalSettings === false,
+            description: 'Style instructions for this player-owned GM voice.',
           },
           name: 'instructions',
           type: 'textarea',
+        },
+        {
+          admin: {
+            components: {
+              Field: '@/components/admin/PlayerVoicePreviewField#PlayerVoicePreviewField',
+            },
+          },
+          label: 'Preview',
+          name: 'voicePreview',
+          type: 'ui',
         },
       ],
     },

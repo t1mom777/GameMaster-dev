@@ -196,12 +196,33 @@ export interface Player {
   canCreateRooms?: boolean | null;
   accessNotes?: string | null;
   preferredVoiceMode?: ('auto-vad' | 'push-to-talk' | 'text-only') | null;
+  /**
+   * GM voice override for sessions owned by this player. Turn off Use global settings if this player should hear a different GM voice than the site default.
+   */
   ttsSettings?: {
+    /**
+     * Keep this on to inherit the global GM voice. Turn it off to define a player-specific override.
+     */
     useGlobalSettings?: boolean | null;
+    /**
+     * TTS provider for this player-owned GM voice.
+     */
     provider?: ('openai' | 'deepgram' | 'elevenlabs') | null;
+    /**
+     * Voice slug for this player-owned GM voice.
+     */
     voice?: string | null;
+    /**
+     * Playback rate. Values below 1 slow the GM down.
+     */
     speed?: number | null;
+    /**
+     * Optional tonal adjustment when supported by the selected provider.
+     */
     pitch?: number | null;
+    /**
+     * Style instructions for this player-owned GM voice.
+     */
     instructions?: string | null;
   };
   lastSeenAt?: string | null;
