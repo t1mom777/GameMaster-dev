@@ -182,7 +182,11 @@ async function submitUpload(
   })
 }
 
-export function PlayerLibraryManager() {
+type PlayerLibraryManagerProps = {
+  compact?: boolean
+}
+
+export function PlayerLibraryManager({ compact = false }: PlayerLibraryManagerProps) {
   const [books, setBooks] = useState<LibraryBook[]>([])
   const [title, setTitle] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -194,10 +198,13 @@ export function PlayerLibraryManager() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [showDetails, setShowDetails] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const activeBooks = useMemo(() => books.filter((book) => book.isActive), [books])
   const readyBooks = useMemo(() => books.filter((book) => book.isActive && book.status === 'ready'), [books])
+  const primaryBook = useMemo(() => books.find((book) => book.isPrimary) || null, [books])
+  const supportingBooks = useMemo(() => books.filter((book) => !book.isPrimary), [books])
   const hasPendingBooks = useMemo(
     () => books.some((book) => book.status === 'uploaded' || book.status === 'indexing'),
     [books],
@@ -383,19 +390,22 @@ export function PlayerLibraryManager() {
     }
   }
 
+  const showExpandedLibrary = !compact || showDetails
+
   return (
-    <section className="library-card">
+    <section className={`library-card ${compact ? 'library-card--compact' : ''}`}>
       <div className="library-card__header">
         <div>
           <p className="eyebrow">Table books</p>
-          <h2>Main rulebook and supporting books</h2>
+          <h2>{compact ? 'Rulebook readiness' : 'Main rulebook and supporting books'}</h2>
         </div>
         <BookCopy size={18} />
       </div>
 
       <p className="library-card__lede">
-        Keep one main rulebook and any number of supporting books. Voice stays locked until the main
-        rulebook is ready, and active books sync into the shared-mic session automatically.
+        {compact
+          ? 'Upload the main rulebook, keep supporting books close, and wait for indexing to finish before voice starts.'
+          : 'Keep one main rulebook and any number of supporting books. Voice stays locked until the main rulebook is ready, and active books sync into the shared-mic session automatically.'}
       </p>
 
       {(isSaving || hasPendingBooks) && (
@@ -430,12 +440,12 @@ export function PlayerLibraryManager() {
 
       <div className="library-metrics">
         <div>
-          <span>Books</span>
-          <strong>{books.length}</strong>
+          <span>Main rulebook</span>
+          <strong>{primaryBook?.title || 'Missing'}</strong>
         </div>
         <div>
-          <span>Active</span>
-          <strong>{activeBooks.length}</strong>
+          <span>Supporting</span>
+          <strong>{supportingBooks.length}</strong>
         </div>
         <div>
           <span>Ready</span>
@@ -443,12 +453,35 @@ export function PlayerLibraryManager() {
         </div>
       </div>
 
+      {compact && (
+        <>
+          {primaryBook && (
+            <div className="library-card__summary">
+              <div>
+                <span>{roleLabel(primaryBook)}</span>
+                <strong>{primaryBook.title}</strong>
+                <p>{bookStatusDetail(primaryBook)}</p>
+              </div>
+              <span className={`pill ${primaryBook.status === 'ready' ? 'pill--accent' : ''}`}>
+                {statusLabel(primaryBook.status)}
+              </span>
+            </div>
+          )}
+
+          {!primaryBook && !isLoading && (
+            <div className="notice-card notice-card--muted">
+              No main rulebook yet. Upload one now so indexing can start.
+            </div>
+          )}
+        </>
+      )}
+
       {isLoading ? (
         <div className="status-line">
           <LoaderCircle className="spin" size={16} />
           Loading your library.
         </div>
-      ) : books.length ? (
+      ) : books.length && showExpandedLibrary ? (
         <div className="library-list">
           {books.map((book) => (
             <article className="library-item" key={book.id}>
@@ -571,14 +604,26 @@ export function PlayerLibraryManager() {
             </article>
           ))}
         </div>
-      ) : (
+      ) : !compact ? (
         <div className="notice-card notice-card--muted">
           Your library is empty. Upload a main rulebook first, then add supporting books as
           needed.
         </div>
+      ) : null}
+
+      {compact && books.length > 0 && (
+        <div className="inline-actions">
+          <button
+            className="button button--ghost"
+            onClick={() => setShowDetails((current) => !current)}
+            type="button"
+          >
+            {showDetails ? 'Hide detailed library' : 'Manage books'}
+          </button>
+        </div>
       )}
 
-      <form className="library-form" onSubmit={handleUpload}>
+      <form className={`library-form ${compact ? 'library-form--compact' : ''}`} onSubmit={handleUpload}>
         <div className="library-form__grid">
           <label className="field">
             <span>Book title</span>

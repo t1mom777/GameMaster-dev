@@ -106,6 +106,10 @@ button {
   gap: 30px;
 }
 
+.surface--play {
+  gap: 24px;
+}
+
 .surface--centered {
   align-items: center;
   min-height: calc(100vh - 180px);
@@ -212,6 +216,15 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.button--small {
+  padding: 10px 14px;
+}
+
+.button--hero {
+  justify-content: center;
+  min-width: 220px;
 }
 
 .hero__lede--tight {
@@ -735,6 +748,32 @@ button {
   justify-content: space-between;
 }
 
+.play-ready {
+  display: grid;
+  gap: 24px;
+}
+
+.play-ready__header {
+  align-items: start;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.play-ready__identity {
+  color: var(--muted);
+  font-size: 0.92rem;
+  padding-top: 8px;
+}
+
+.play-ready__identity span {
+  display: inline-flex;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
 .play-hero__actions {
   align-items: center;
   display: flex;
@@ -777,6 +816,47 @@ button {
 .library-card__lede,
 .game-card__lede {
   margin: 0;
+}
+
+.library-card--compact {
+  gap: 16px;
+}
+
+.library-card__summary {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.library-card__summary span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.library-card__summary strong {
+  display: block;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.5rem;
+  margin-bottom: 6px;
+}
+
+.library-card__summary p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.library-form--compact {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 18px;
 }
 
 .library-metrics,
@@ -1044,6 +1124,111 @@ button {
   align-items: start;
 }
 
+.stack-panel--ready {
+  gap: 20px;
+}
+
+.panel-card--ready,
+.panel-card--table {
+  gap: 18px;
+}
+
+.ready-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(240px, 0.9fr);
+}
+
+.ready-grid__main,
+.ready-checklist {
+  display: grid;
+  gap: 14px;
+}
+
+.ready-grid__supporting span {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.ready-grid__toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ready-checklist__item {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.ready-checklist__item svg {
+  flex: 0 0 auto;
+}
+
+.ready-checklist__item--ready {
+  color: var(--text);
+  border-color: rgba(184, 216, 203, 0.26);
+  background: rgba(184, 216, 203, 0.08);
+}
+
+.table-seat-summary {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.table-seat-summary__card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+}
+
+.table-seat-summary__card span {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.table-seat-summary__card strong {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.45rem;
+}
+
+.table-seat-summary__card p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.table-seat-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.player-action {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding-top: 8px;
+  text-align: center;
+}
+
+.player-action span {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
 .identity-chip {
   align-items: center;
   background: rgba(255, 255, 255, 0.03);
@@ -1224,6 +1409,10 @@ button {
     flex-direction: column;
   }
 
+  .play-ready__header {
+    flex-direction: column;
+  }
+
   .hero,
   .play-hero,
   .rooms-hero,
@@ -1249,7 +1438,8 @@ button {
   .game-card__facts,
   .library-form__grid,
   .library-item__body,
-  .table-seat-grid {
+  .table-seat-grid,
+  .ready-grid {
     grid-template-columns: 1fr;
   }
 

@@ -7,6 +7,7 @@ import {
   Mic,
   MicOff,
   OctagonX,
+  PencilLine,
   Radio,
   RefreshCcw,
   Save,
@@ -36,6 +37,7 @@ type SessionRoomProps = {
   readyBookCount: number
   rulebookReady: boolean
   sessionSlug: string
+  supportingBookCount?: number
   title: string
   welcomeText: string
 }
@@ -227,6 +229,7 @@ export function SessionRoom(props: SessionRoomProps) {
   )
   const [isLoadingTableSetup, setIsLoadingTableSetup] = useState(true)
   const [isSavingTableSetup, setIsSavingTableSetup] = useState(false)
+  const [isEditingTable, setIsEditingTable] = useState(false)
   const [tableStatus, setTableStatus] = useState<string | null>(null)
   const [conversationStatus, setConversationStatus] = useState<string | null>(null)
   const roomRef = useRef<Room | null>(null)
@@ -372,8 +375,10 @@ export function SessionRoom(props: SessionRoomProps) {
 
       setTableSeatCount(nextSeatCount)
       setTableSeatDrafts(buildTableSeatDrafts(seed, playerName || props.initialPlayerName || ''))
+      setIsEditingTable(tableMappings.length === 0)
       setTableStatus(tableMappings.length ? 'Saved table labels loaded.' : null)
     } catch (mappingError) {
+      setIsEditingTable(true)
       setTableStatus(
         formatTableSetupError(mappingError, 'Unable to load the table setup.'),
       )
@@ -549,6 +554,7 @@ export function SessionRoom(props: SessionRoomProps) {
 
       setTableSeatCount(nextSeatCount)
       setTableSeatDrafts(buildTableSeatDrafts(seed, playerName))
+      setIsEditingTable(false)
       setTableStatus(showSuccessMessage ? 'Table names saved for this session.' : null)
       return true
     } catch (mappingError) {
@@ -650,6 +656,23 @@ export function SessionRoom(props: SessionRoomProps) {
     return 'Ready to play'
   }, [isConnected, step])
 
+  const readinessChecklist = [
+    {
+      label: micCheckState === 'ready' ? 'Shared mic checked.' : 'Shared mic needs a quick check.',
+      ready: micCheckState === 'ready',
+    },
+    {
+      label: tableSeatsReady ? 'People at the table named.' : 'Name every person at the table.',
+      ready: tableSeatsReady,
+    },
+    {
+      label: props.rulebookReady ? 'Main rulebook ready.' : 'Main rulebook still processing.',
+      ready: props.rulebookReady,
+    },
+  ]
+
+  const primaryActionLabel = isConnected ? 'Continue voice' : 'Start voice'
+
   return (
     <section className="console-card">
       <div className="console-card__header">
@@ -666,14 +689,6 @@ export function SessionRoom(props: SessionRoomProps) {
 
       {props.welcomeText && <p className="console-card__lede">{props.welcomeText}</p>}
 
-      <div className="identity-chip">
-        <span className="pill">Signed in</span>
-        <div>
-          <strong>{props.authenticatedPlayer?.displayName}</strong>
-          <p>{props.authenticatedPlayer?.email}</p>
-        </div>
-      </div>
-
       {!props.rulebookReady && (
         <div className="notice-card">
           {normalizeLibraryGateMessage(props.primaryRulebookTitle)}
@@ -681,44 +696,60 @@ export function SessionRoom(props: SessionRoomProps) {
       )}
 
       {step === 'preflight' && (
-        <div className="stack-panel">
-          <div className="panel-card">
+        <div className="stack-panel stack-panel--ready">
+          <div className="panel-card panel-card--ready">
             <div className="panel-card__header">
               <div>
-                <p className="eyebrow">Step 1</p>
-                <h3>Check the shared mic</h3>
+                <p className="eyebrow">Readiness</p>
+                <h3>{props.primaryRulebookTitle || 'Add a main rulebook'}</h3>
               </div>
               <Settings2 size={18} />
             </div>
 
-            <label className="field">
-              <span>Signed-in player label</span>
-              <input
-                onChange={(event) => setPlayerName(event.target.value)}
-                placeholder="Who is launching the session?"
-                value={playerName}
-              />
-            </label>
+            <div className="ready-grid">
+              <div className="ready-grid__main">
+                <div className="ready-grid__supporting">
+                  <span>
+                    Supporting {props.supportingBookCount || 0}
+                    {props.supportingBookCount ? ` · ${props.readyBookCount} ready` : ''}
+                  </span>
+                </div>
 
-            <label className="field">
-              <span>Microphone</span>
-              <select
-                onChange={(event) => setSelectedMicId(event.target.value)}
-                value={selectedMicId}
-              >
-                {audioInputs.map((device) => (
-                  <option key={device.deviceId} value={device.deviceId}>
-                    {device.label || 'Default microphone'}
-                  </option>
+                <label className="field">
+                  <span>Microphone</span>
+                  <select
+                    onChange={(event) => setSelectedMicId(event.target.value)}
+                    value={selectedMicId}
+                  >
+                    {audioInputs.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || 'Default microphone'}
+                      </option>
+                    ))}
+                    {!audioInputs.length && <option value="">Default microphone</option>}
+                  </select>
+                </label>
+
+                <div className="ready-grid__toggles">
+                  <span className="pill">Auto VAD</span>
+                  <span className="pill">Shared device</span>
+                </div>
+              </div>
+
+              <div className="ready-checklist">
+                {readinessChecklist.map((item) => (
+                  <div className={`ready-checklist__item ${item.ready ? 'ready-checklist__item--ready' : ''}`} key={item.label}>
+                    <CheckCircle2 size={16} />
+                    <span>{item.label}</span>
+                  </div>
                 ))}
-                {!audioInputs.length && <option value="">Default microphone</option>}
-              </select>
-            </label>
+              </div>
+            </div>
 
             <div className="inline-actions">
               <button className="button button--ghost" onClick={runMicCheck} type="button">
                 {micCheckState === 'checking' ? <LoaderCircle className="spin" size={18} /> : <Mic size={18} />}
-                {micCheckState === 'ready' ? 'Mic checked' : 'Run mic check'}
+                {micCheckState === 'ready' ? 'Mic checked' : 'Check microphone'}
               </button>
             </div>
 
@@ -726,26 +757,33 @@ export function SessionRoom(props: SessionRoomProps) {
               {micCheckState === 'ready' && (
                 <>
                   <CheckCircle2 size={16} />
-                  The shared microphone is ready.
+                  Shared microphone checked and ready.
                 </>
               )}
-              {micCheckState === 'idle' && 'Run a quick mic check before the table starts.'}
+              {micCheckState === 'idle' && 'Run a quick microphone check before starting voice.'}
               {micCheckState === 'blocked' && 'Microphone access is blocked for this browser session.'}
             </div>
           </div>
 
-          <div className="panel-card">
+          <div className="panel-card panel-card--table">
             <div className="panel-card__header">
               <div>
-                <p className="eyebrow">Step 2</p>
-                <h3>Name the people at the table</h3>
+                <p className="eyebrow">People at the table</p>
+                <h3>Give each voice a stable seat</h3>
               </div>
-              <UsersRound size={18} />
+
+              <button
+                className="button button--ghost button--small"
+                onClick={() => setIsEditingTable((current) => !current)}
+                type="button"
+              >
+                <PencilLine size={16} />
+                {isEditingTable ? 'Done' : 'Edit'}
+              </button>
             </div>
 
             <p className="panel-card__copy">
-              Everyone shares one device and one microphone. Save the seat names now so the GM has a
-              stable roster before the scene starts.
+              The virtual GM recognizes the table from one shared microphone. Keep names stable across sessions.
             </p>
 
             {isLoadingTableSetup && (
@@ -755,89 +793,111 @@ export function SessionRoom(props: SessionRoomProps) {
               </div>
             )}
 
-            <label className="field">
-              <span>People at this microphone</span>
-              <select
-                onChange={(event) => setTableSeatCount(clampTableSeatCount(Number.parseInt(event.target.value, 10)))}
-                value={tableSeatCount}
-              >
-                {Array.from({ length: MAX_TABLE_SEAT_COUNT }, (_, index) => {
-                  const count = index + 1
-                  return (
-                    <option key={count} value={count}>
-                      {count} {count === 1 ? 'person' : 'people'}
-                    </option>
-                  )
-                })}
-              </select>
-            </label>
-
-            <div className="table-seat-grid">
+            <div className="table-seat-summary">
               {visibleTableSeats.map((seat) => (
-                <div className="table-seat-card" key={seat.id}>
-                  <div className="table-seat-card__header">
-                    <strong>{seat.label}</strong>
-                    <span>Short name plus optional cue</span>
-                  </div>
-
-                  <label className="field">
-                    <span>Name</span>
-                    <input
-                      onChange={(event) =>
-                        setTableSeatDrafts((current) =>
-                          current.map((entry) =>
-                            entry.id === seat.id ? { ...entry, name: event.target.value } : entry,
-                          ),
-                        )
-                      }
-                      placeholder="Player or character name"
-                      value={seat.name}
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Quick cue</span>
-                    <input
-                      onChange={(event) =>
-                        setTableSeatDrafts((current) =>
-                          current.map((entry) =>
-                            entry.id === seat.id ? { ...entry, notes: event.target.value } : entry,
-                          ),
-                        )
-                      }
-                      placeholder="Seat, character, or voice cue"
-                      value={seat.notes}
-                    />
-                  </label>
+                <div className="table-seat-summary__card" key={seat.id}>
+                  <span>{seat.label}</span>
+                  <strong>{seat.name.trim() || 'Name needed'}</strong>
+                  <p>{seat.notes.trim() || (seat.id === buildTableSeatId(0) ? 'Recognizes your voice' : 'Shared table voice')}</p>
                 </div>
               ))}
             </div>
 
+            {isEditingTable && (
+              <div className="table-seat-editor">
+                <label className="field">
+                  <span>People at this microphone</span>
+                  <select
+                    onChange={(event) => setTableSeatCount(clampTableSeatCount(Number.parseInt(event.target.value, 10)))}
+                    value={tableSeatCount}
+                  >
+                    {Array.from({ length: MAX_TABLE_SEAT_COUNT }, (_, index) => {
+                      const count = index + 1
+                      return (
+                        <option key={count} value={count}>
+                          {count} {count === 1 ? 'person' : 'people'}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </label>
+
+                <div className="table-seat-grid">
+                  {visibleTableSeats.map((seat, index) => (
+                    <div className="table-seat-card" key={seat.id}>
+                      <div className="table-seat-card__header">
+                        <strong>{seat.label}</strong>
+                        <span>Short name plus optional cue</span>
+                      </div>
+
+                      <label className="field">
+                        <span>Name</span>
+                        <input
+                          onChange={(event) => {
+                            const nextValue = event.target.value
+                            setTableSeatDrafts((current) =>
+                              current.map((entry) =>
+                                entry.id === seat.id ? { ...entry, name: nextValue } : entry,
+                              ),
+                            )
+
+                            if (index === 0) {
+                              setPlayerName(nextValue)
+                            }
+                          }}
+                          placeholder="Player or character name"
+                          value={seat.name}
+                        />
+                      </label>
+
+                      <label className="field">
+                        <span>Quick cue</span>
+                        <input
+                          onChange={(event) =>
+                            setTableSeatDrafts((current) =>
+                              current.map((entry) =>
+                                entry.id === seat.id ? { ...entry, notes: event.target.value } : entry,
+                              ),
+                            )
+                          }
+                          placeholder="Seat, character, or voice cue"
+                          value={seat.notes}
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="inline-actions">
+                  <button
+                    className="button button--ghost"
+                    disabled={isSavingTableSetup || isLoadingTableSetup}
+                    onClick={() => void saveTableSetup(true)}
+                    type="button"
+                  >
+                    {isSavingTableSetup ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}
+                    Save people
+                  </button>
+                </div>
+              </div>
+            )}
+
             {tableStatus && <div className="notice-card">{tableStatus}</div>}
 
-            <div className="inline-actions">
+            <div className="player-action">
+              <span>{isConnected ? 'Voice is live.' : 'Waiting to start...'}</span>
               <button
-                className="button button--ghost"
-                disabled={isSavingTableSetup || isLoadingTableSetup}
-                onClick={() => void saveTableSetup(true)}
-                type="button"
-              >
-                {isSavingTableSetup ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}
-                Save table labels
-              </button>
-
-              <button
-                className="button button--primary"
+                className="button button--primary button--hero"
                 disabled={isSavingTableSetup || !props.rulebookReady || !tableSeatsReady || micCheckState !== 'ready'}
                 onClick={joinSession}
                 type="button"
               >
-                Start shared-mic VAD
-                <ArrowRight size={18} />
+                <Mic size={18} />
+                {primaryActionLabel}
               </button>
             </div>
 
-            <div className="status-line">
+            <div className="subtle-note">
               {props.rulebookReady
                 ? `${props.readyBookCount} ready book${props.readyBookCount === 1 ? '' : 's'} will ground the next voice session.`
                 : normalizeLibraryGateMessage(props.primaryRulebookTitle)}
