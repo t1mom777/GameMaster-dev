@@ -111,16 +111,71 @@ function mergeVoiceSettings(
 function buildDeepgramVoiceModel(model: string, voice: string): string {
   const trimmedModel = asText(model)
   const trimmedVoice = asText(voice)
+  const normalizedVoice = trimmedVoice.toLowerCase()
+  const normalizedModel = trimmedModel.toLowerCase()
+
+  if (trimmedVoice.startsWith('aura-2-')) {
+    return trimmedVoice
+  }
+
+  if (/^aura-[a-z0-9]+-[a-z]{2}(?:-[a-z]{2})?$/i.test(trimmedVoice)) {
+    return trimmedVoice.replace(/^aura-/i, 'aura-2-')
+  }
 
   if (!trimmedVoice) {
     return trimmedModel || 'aura-2'
   }
 
-  if (trimmedVoice.startsWith('aura-') || (trimmedModel && trimmedVoice.startsWith(`${trimmedModel}-`))) {
+  if (trimmedVoice.startsWith('aura-') || (trimmedModel && normalizedVoice.startsWith(`${normalizedModel}-`))) {
     return trimmedVoice
   }
 
   return trimmedModel ? `${trimmedModel}-${trimmedVoice}` : trimmedVoice
+}
+
+function buildWorkerCompatibleDeepgramModel(settings: ResolvedTTSSettings): string {
+  const configuredModel = asText(settings.providerConfig.model)
+  const configuredVoice = asText(settings.voice)
+  const voiceProfile = asText(settings.instructions).toLowerCase()
+
+  if (configuredVoice.startsWith('aura-2-')) {
+    return configuredVoice
+  }
+
+  if (/^aura-[a-z0-9]+-[a-z]{2}(?:-[a-z]{2})?$/i.test(configuredVoice)) {
+    return configuredVoice.replace(/^aura-/i, 'aura-2-')
+  }
+
+  if (!configuredVoice && voiceProfile.includes('hugh laurie')) {
+    return 'aura-2-helios-en'
+  }
+
+  if (
+    ['asteria-en', 'thalia-en', 'aura-asteria-en', 'aura-thalia-en', 'aura-2-asteria-en', 'aura-2-thalia-en'].includes(
+      configuredVoice.toLowerCase(),
+    ) &&
+    voiceProfile.includes('hugh laurie')
+  ) {
+    return 'aura-2-helios-en'
+  }
+
+  return buildDeepgramVoiceModel(configuredModel, configuredVoice)
+}
+
+function buildWorkerCompatibleOpenAIVoice(settings: ResolvedTTSSettings): string {
+  const configuredVoice = asText(settings.voice).toLowerCase()
+  const voiceProfile = asText(settings.instructions).toLowerCase()
+  const supportedVoices = new Set(['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'])
+
+  if (voiceProfile.includes('hugh laurie')) {
+    if (supportedVoices.has(configuredVoice) && ['ballad', 'ash', 'verse'].includes(configuredVoice)) {
+      return configuredVoice
+    }
+
+    return 'ash'
+  }
+
+  return supportedVoices.has(configuredVoice) ? configuredVoice : 'alloy'
 }
 
 async function requireOk(response: Response, provider: TTSProvider) {
@@ -147,7 +202,7 @@ const providerMap: Record<TTSProvider, ProviderHandler> = {
         instructions: settings.instructions || undefined,
         model,
         speed: settings.speed,
-        voice: settings.voice,
+        voice: buildWorkerCompatibleOpenAIVoice(settings),
       }),
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -171,7 +226,13 @@ const providerMap: Record<TTSProvider, ProviderHandler> = {
       throw new Error('Deepgram TTS API key is missing in voice-settings.')
     }
 
-    const voiceModel = buildDeepgramVoiceModel(model, settings.voice)
+    const voiceModel = buildWorkerCompatibleDeepgramModel({
+      ...settings,
+      providerConfig: {
+        ...settings.providerConfig,
+        model,
+      },
+    })
     const response = await fetch(`https://api.deepgram.com/v1/speak?model=${encodeURIComponent(voiceModel)}`, {
       body: JSON.stringify({ text }),
       headers: {
