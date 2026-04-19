@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from dotenv import load_dotenv
 from livekit.agents import Agent, AgentServer, AgentSession, JobContext, RunContext, cli, room_io
@@ -33,6 +34,19 @@ def build_stt(runtime: SessionContext):
 def build_deepgram_tts_model(runtime: SessionContext) -> str:
     configured_model = (runtime.runtime_defaults.tts_model or "").strip()
     configured_voice = (runtime.runtime_defaults.tts_voice or "").strip()
+    voice_profile = (runtime.runtime_defaults.tts_instructions or "").strip().lower()
+
+    if configured_voice.startswith("aura-2-"):
+        return configured_voice
+
+    if re.match(r"^aura-[a-z0-9]+-[a-z]{2}(?:-[a-z]{2})?$", configured_voice):
+        return configured_voice.replace("aura-", "aura-2-", 1)
+
+    if not configured_voice and "hugh laurie" in voice_profile:
+        return "aura-2-helios-en"
+
+    if configured_voice in {"asteria-en", "thalia-en"} and "hugh laurie" in voice_profile:
+        return "aura-2-helios-en"
 
     if configured_voice.startswith("aura-"):
         return configured_voice
@@ -48,6 +62,7 @@ def build_deepgram_tts_model(runtime: SessionContext) -> str:
 
 def build_openai_tts_voice(runtime: SessionContext) -> str:
     configured_voice = (runtime.runtime_defaults.tts_voice or "").strip().lower()
+    voice_profile = (runtime.runtime_defaults.tts_instructions or "").strip().lower()
     supported_voices = {
         "alloy",
         "ash",
@@ -58,14 +73,22 @@ def build_openai_tts_voice(runtime: SessionContext) -> str:
         "shimmer",
         "verse",
     }
+
+    if "hugh laurie" in voice_profile:
+        if configured_voice in {"ballad", "ash", "verse"}:
+            return configured_voice
+        return "ash"
+
     return configured_voice if configured_voice in supported_voices else "alloy"
 
 
 def build_tts(runtime: SessionContext):
     if runtime.runtime_defaults.tts_provider == "openai":
+        instructions = (runtime.runtime_defaults.tts_instructions or "").strip() or None
         return openai.TTS(
             model=runtime.runtime_defaults.tts_model or "gpt-4o-mini-tts",
             voice=build_openai_tts_voice(runtime),
+            instructions=instructions,
         )
 
     if runtime.runtime_defaults.tts_provider == "deepgram":
@@ -83,6 +106,7 @@ def build_tts(runtime: SessionContext):
         return openai.TTS(
             model="gpt-4o-mini-tts",
             voice=build_openai_tts_voice(runtime),
+            instructions=(runtime.runtime_defaults.tts_instructions or "").strip() or None,
         )
 
     try:
@@ -90,12 +114,14 @@ def build_tts(runtime: SessionContext):
         return openai.TTS(
             model="gpt-4o-mini-tts",
             voice=build_openai_tts_voice(runtime),
+            instructions=(runtime.runtime_defaults.tts_instructions or "").strip() or None,
         )
     except TypeError:
         logger.warning("Deepgram TTS init failed; falling back to OpenAI TTS.")
         return openai.TTS(
             model="gpt-4o-mini-tts",
             voice=build_openai_tts_voice(runtime),
+            instructions=(runtime.runtime_defaults.tts_instructions or "").strip() or None,
         )
 
 
@@ -128,6 +154,7 @@ class GameMasterAgent(Agent):
                 f"Voice delivery profile: {runtime.runtime_defaults.tts_instructions.strip()}."
                 if runtime.runtime_defaults.tts_instructions.strip()
                 else "",
+                "If the voice profile asks for calm authority, dry wit, British cadence, or Hugh Laurie energy, make that obvious in sentence rhythm and timing.",
                 "Use the consult_rulebooks tool whenever a player asks about mechanics, edge cases, or lore covered by the active books.",
                 "Keep responses concise, speakable, and dramatic enough for a live tabletop session.",
                 "Format spoken answers for TTS: keep most turns to one to three short sentences.",
