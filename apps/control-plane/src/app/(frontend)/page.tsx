@@ -39,10 +39,12 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
     ? `${primaryBook ? `${primaryBook.title} is set as your main rulebook.` : 'Add your main rulebook next.'} ${readyBooks.length} ready book${readyBooks.length === 1 ? '' : 's'} can ground the next session.`
     : 'No setup. Start in seconds.'
   const supportLine = playerSession ? 'Built for real tabletop sessions.' : 'Built for real tabletop sessions.'
-  const primaryHref = playerSession ? '/play' : '/login'
+  const primaryHref = playerSession
+    ? '/play'
+    : isGooglePlayerAuthConfigured()
+      ? '/auth/google/start?returnTo=%2Fplay'
+      : '/login'
   const primaryLabel = playerSession ? 'Open your table' : isGooglePlayerAuthConfigured() ? 'Continue with Google' : 'Start playing'
-  const secondaryHref = playerSession ? '/play#library' : '/join'
-  const secondaryLabel = playerSession ? 'Manage rulebooks' : 'Join room'
 
   return (
     <main className="surface surface--landing">
@@ -51,7 +53,6 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         <div className="landing-minimal__glow landing-minimal__glow--center" aria-hidden="true" />
 
         <div className="landing-minimal__hero">
-          <p className="landing-minimal__mark">{siteSettings.siteTitle}</p>
           <div className="landing-minimal__copy">
             <h1>
               {playerSession ? (
@@ -77,9 +78,6 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
                 </span>
                 {primaryLabel}
               </Link>
-              <Link className="landing-minimal__secondary" href={secondaryHref}>
-                {secondaryLabel}
-              </Link>
             </div>
 
             <div className="landing-minimal__meta">
@@ -92,15 +90,30 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         </div>
 
         <div className="landing-minimal__rail" aria-label="How it works">
-          <span>Sign in</span>
+          <span className="landing-minimal__rail-item">
+            <span className="landing-minimal__rail-icon" aria-hidden="true">
+              ◎
+            </span>
+            <span>Sign in</span>
+          </span>
           <span className="landing-minimal__arrow" aria-hidden="true">
             →
           </span>
-          <span>Add rulebook</span>
+          <span className="landing-minimal__rail-item">
+            <span className="landing-minimal__rail-icon" aria-hidden="true">
+              ▣
+            </span>
+            <span>Add rulebook</span>
+          </span>
           <span className="landing-minimal__arrow" aria-hidden="true">
             →
           </span>
-          <span>Start talking</span>
+          <span className="landing-minimal__rail-item">
+            <span className="landing-minimal__rail-icon" aria-hidden="true">
+              ◉
+            </span>
+            <span>Start talking</span>
+          </span>
         </div>
 
         <div className="landing-minimal__footer-copy">

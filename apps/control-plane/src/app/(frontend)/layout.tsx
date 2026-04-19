@@ -37,12 +37,11 @@ export default async function FrontendLayout(props: { children: React.ReactNode 
         <div className="player-app">
           <header className="topbar">
             <Link className="brandmark" href="/">
-              <span className="brandmark__crest">GM</span>
-              <span>GameMaster</span>
+              <span>VGM</span>
             </Link>
 
-            <nav className="topbar__actions" aria-label="Player">
-              {playerSession ? (
+            {playerSession ? (
+              <nav className="topbar__actions" aria-label="Player">
                 <>
                   <Link className="topbar__link" href="/play">
                     Play
@@ -51,12 +50,8 @@ export default async function FrontendLayout(props: { children: React.ReactNode 
                     Sign out
                   </a>
                 </>
-              ) : (
-                <Link className="button button--ghost" href="/login">
-                  Sign in
-                </Link>
-              )}
-            </nav>
+              </nav>
+            ) : null}
           </header>
 
           {props.children}

@@ -83,23 +83,10 @@ button {
   align-items: center;
   display: inline-flex;
   font-family: var(--font-display), Georgia, serif;
-  font-size: 1.1rem;
-  gap: 12px;
-}
-
-.brandmark__crest {
-  align-items: center;
-  background: linear-gradient(135deg, rgba(217, 176, 139, 0.18), rgba(255, 241, 230, 0.06));
-  border: 1px solid rgba(255, 241, 230, 0.1);
-  border-radius: 14px;
-  display: inline-flex;
-  font-family: var(--font-body), sans-serif;
-  font-size: 0.88rem;
-  font-weight: 700;
-  height: 40px;
-  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 600;
   letter-spacing: 0.08em;
-  min-width: 40px;
+  text-transform: uppercase;
 }
 
 .topbar__actions {
@@ -467,17 +454,6 @@ button {
   width: 100%;
 }
 
-.landing-minimal__mark {
-  align-self: start;
-  color: rgba(242, 231, 221, 0.66);
-  font-size: 1.1rem;
-  font-weight: 600;
-  justify-self: start;
-  letter-spacing: 0.08em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
 .landing-minimal__copy {
   display: grid;
   gap: 18px;
@@ -506,15 +482,9 @@ button {
 .landing-minimal__actions {
   align-items: center;
   display: grid;
-  gap: 14px;
+  gap: 0;
   justify-items: center;
   margin-top: 10px;
-}
-
-.landing-minimal__secondary {
-  color: rgba(215, 200, 190, 0.9);
-  font-size: 0.98rem;
-  font-weight: 500;
 }
 
 .landing-minimal__meta {
@@ -546,6 +516,22 @@ button {
   margin-top: clamp(52px, 10vw, 100px);
   padding: 22px 0;
   width: min(860px, 100%);
+}
+
+.landing-minimal__rail-item {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+}
+
+.landing-minimal__rail-icon {
+  align-items: center;
+  color: rgba(215, 200, 190, 0.84);
+  display: inline-flex;
+  font-size: 1rem;
+  justify-content: center;
+  line-height: 1;
+  min-width: 18px;
 }
 
 .landing-minimal__arrow {
