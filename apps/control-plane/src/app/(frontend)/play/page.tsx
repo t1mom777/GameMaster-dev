@@ -40,11 +40,10 @@ export default async function PlayPage() {
       <section className="play-ready">
         <div className="play-ready__header">
           <div>
-            <p className="eyebrow">Signed in as {player.displayName}</p>
+            <p className="eyebrow">Ready to play</p>
             <h1>Ready to play.</h1>
             <p>
-              Run the table from one device. Keep the main rulebook grounded, confirm who is at the
-              table, then start voice from the same page.
+              Run the table from one device. The virtual GM is ready.
             </p>
           </div>
 
@@ -72,6 +71,8 @@ export default async function PlayPage() {
             'Shared-device play is ready. Check the mic, confirm the table, and start voice when everyone is seated.'
           }
         />
+
+        <p className="play-ready__footer">One table. One device. One memory.</p>
       </section>
     </main>
   )

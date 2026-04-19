@@ -215,6 +215,7 @@ export function PlayerLibraryManager({ compact = false }: PlayerLibraryManagerPr
   )
   const featuredPendingBook = pendingBooks.find((book) => book.isPrimary) || pendingBooks[0] || null
   const overallLibraryProgress = getOverallLibraryProgress(pendingBooks, isSaving, uploadProgress)
+  const shouldForceExpandedCompact = compact && (!primaryBook || isSaving || hasPendingBooks)
 
   async function refreshLibrary(options?: { silent?: boolean }) {
     if (!options?.silent) {
@@ -391,20 +392,21 @@ export function PlayerLibraryManager({ compact = false }: PlayerLibraryManagerPr
   }
 
   const showExpandedLibrary = !compact || showDetails
+  const showCompactForm = !compact || showDetails || shouldForceExpandedCompact
 
   return (
     <section className={`library-card ${compact ? 'library-card--compact' : ''}`}>
       <div className="library-card__header">
         <div>
           <p className="eyebrow">Table books</p>
-          <h2>{compact ? 'Rulebook readiness' : 'Main rulebook and supporting books'}</h2>
+          <h2>{compact ? 'Main rulebook' : 'Main rulebook and supporting books'}</h2>
         </div>
-        <BookCopy size={18} />
+        {!compact && <BookCopy size={18} />}
       </div>
 
       <p className="library-card__lede">
         {compact
-          ? 'Upload the main rulebook, keep supporting books close, and wait for indexing to finish before voice starts.'
+          ? 'Keep one grounded primary book, then add supporting books when needed.'
           : 'Keep one main rulebook and any number of supporting books. Voice stays locked until the main rulebook is ready, and active books sync into the shared-mic session automatically.'}
       </p>
 
@@ -440,10 +442,6 @@ export function PlayerLibraryManager({ compact = false }: PlayerLibraryManagerPr
 
       <div className="library-metrics">
         <div>
-          <span>Main rulebook</span>
-          <strong>{primaryBook?.title || 'Missing'}</strong>
-        </div>
-        <div>
           <span>Supporting</span>
           <strong>{supportingBooks.length}</strong>
         </div>
@@ -458,9 +456,12 @@ export function PlayerLibraryManager({ compact = false }: PlayerLibraryManagerPr
           {primaryBook && (
             <div className="library-card__summary">
               <div>
-                <span>{roleLabel(primaryBook)}</span>
+                <span>{primaryBook.isPrimary ? 'Main rulebook' : roleLabel(primaryBook)}</span>
                 <strong>{primaryBook.title}</strong>
-                <p>{bookStatusDetail(primaryBook)}</p>
+                <p>
+                  Supporting {supportingBooks.length}
+                  {supportingBooks.length ? ` · ${supportingBooks.map((book) => book.title).slice(0, 1).join(', ')}` : ''}
+                </p>
               </div>
               <span className={`pill ${primaryBook.status === 'ready' ? 'pill--accent' : ''}`}>
                 {statusLabel(primaryBook.status)}
@@ -614,15 +615,16 @@ export function PlayerLibraryManager({ compact = false }: PlayerLibraryManagerPr
       {compact && books.length > 0 && (
         <div className="inline-actions">
           <button
-            className="button button--ghost"
+            className="button button--ghost button--small"
             onClick={() => setShowDetails((current) => !current)}
             type="button"
           >
-            {showDetails ? 'Hide detailed library' : 'Manage books'}
+            {showDetails ? 'Hide rulebook tools' : 'Manage rulebooks'}
           </button>
         </div>
       )}
 
+      {showCompactForm && (
       <form className={`library-form ${compact ? 'library-form--compact' : ''}`} onSubmit={handleUpload}>
         <div className="library-form__grid">
           <label className="field">
@@ -693,6 +695,7 @@ export function PlayerLibraryManager({ compact = false }: PlayerLibraryManagerPr
           </button>
         </div>
       </form>
+      )}
     </section>
   )
 }

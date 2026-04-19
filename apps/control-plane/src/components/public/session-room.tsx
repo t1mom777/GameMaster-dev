@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  ArrowRight,
   CheckCircle2,
   LoaderCircle,
   Mic,
@@ -12,7 +11,7 @@ import {
   RefreshCcw,
   Save,
   Settings2,
-  UsersRound,
+  UserRound,
 } from 'lucide-react'
 import { ParticipantKind, RemoteTrack, Room, RoomEvent, Track } from 'livekit-client'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -672,22 +671,27 @@ export function SessionRoom(props: SessionRoomProps) {
   ]
 
   const primaryActionLabel = isConnected ? 'Continue voice' : 'Start voice'
+  const isPreflight = step === 'preflight'
 
   return (
-    <section className="console-card">
-      <div className="console-card__header">
-        <div>
-          <p className="eyebrow">Voice session</p>
-          <h2>{liveSummary}</h2>
-        </div>
+    <section className={`console-card ${isPreflight ? 'console-card--play' : ''}`}>
+      {!isPreflight && (
+        <>
+          <div className="console-card__header">
+            <div>
+              <p className="eyebrow">Voice session</p>
+              <h2>{liveSummary}</h2>
+            </div>
 
-        <div className={`status-chip ${isConnected ? 'status-chip--live' : ''}`}>
-          <Radio size={16} />
-          {isConnected ? 'Connected' : 'Standing by'}
-        </div>
-      </div>
+            <div className={`status-chip ${isConnected ? 'status-chip--live' : ''}`}>
+              <Radio size={16} />
+              {isConnected ? 'Connected' : 'Standing by'}
+            </div>
+          </div>
 
-      {props.welcomeText && <p className="console-card__lede">{props.welcomeText}</p>}
+          {props.welcomeText && <p className="console-card__lede">{props.welcomeText}</p>}
+        </>
+      )}
 
       {!props.rulebookReady && (
         <div className="notice-card">
@@ -700,21 +704,14 @@ export function SessionRoom(props: SessionRoomProps) {
           <div className="panel-card panel-card--ready">
             <div className="panel-card__header">
               <div>
-                <p className="eyebrow">Readiness</p>
-                <h3>{props.primaryRulebookTitle || 'Add a main rulebook'}</h3>
+                <p className="eyebrow">Shared mic</p>
+                <h3>Shared device standing by.</h3>
               </div>
-              <Settings2 size={18} />
+              <Settings2 size={18} className="panel-card__icon" />
             </div>
 
             <div className="ready-grid">
               <div className="ready-grid__main">
-                <div className="ready-grid__supporting">
-                  <span>
-                    Supporting {props.supportingBookCount || 0}
-                    {props.supportingBookCount ? ` · ${props.readyBookCount} ready` : ''}
-                  </span>
-                </div>
-
                 <label className="field">
                   <span>Microphone</span>
                   <select
@@ -732,7 +729,6 @@ export function SessionRoom(props: SessionRoomProps) {
 
                 <div className="ready-grid__toggles">
                   <span className="pill">Auto VAD</span>
-                  <span className="pill">Shared device</span>
                 </div>
               </div>
 
@@ -769,7 +765,7 @@ export function SessionRoom(props: SessionRoomProps) {
             <div className="panel-card__header">
               <div>
                 <p className="eyebrow">People at the table</p>
-                <h3>Give each voice a stable seat</h3>
+                <h3>People at the table</h3>
               </div>
 
               <button
@@ -783,7 +779,7 @@ export function SessionRoom(props: SessionRoomProps) {
             </div>
 
             <p className="panel-card__copy">
-              The virtual GM recognizes the table from one shared microphone. Keep names stable across sessions.
+              The virtual GM recognizes each player by voice.
             </p>
 
             {isLoadingTableSetup && (
@@ -796,9 +792,14 @@ export function SessionRoom(props: SessionRoomProps) {
             <div className="table-seat-summary">
               {visibleTableSeats.map((seat) => (
                 <div className="table-seat-summary__card" key={seat.id}>
-                  <span>{seat.label}</span>
-                  <strong>{seat.name.trim() || 'Name needed'}</strong>
-                  <p>{seat.notes.trim() || (seat.id === buildTableSeatId(0) ? 'Recognizes your voice' : 'Shared table voice')}</p>
+                  <div className="table-seat-summary__icon">
+                    <UserRound size={18} />
+                  </div>
+                  <div className="table-seat-summary__copy">
+                    <span>{seat.label}</span>
+                    <strong>{seat.name.trim() || 'Name needed'}</strong>
+                    <p>{seat.notes.trim() || (seat.id === buildTableSeatId(0) ? 'Recognizes your voice' : 'Shared table voice')}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -896,12 +897,6 @@ export function SessionRoom(props: SessionRoomProps) {
                 {primaryActionLabel}
               </button>
             </div>
-
-            <div className="subtle-note">
-              {props.rulebookReady
-                ? `${props.readyBookCount} ready book${props.readyBookCount === 1 ? '' : 's'} will ground the next voice session.`
-                : normalizeLibraryGateMessage(props.primaryRulebookTitle)}
-            </div>
           </div>
         </div>
       )}
@@ -971,7 +966,7 @@ export function SessionRoom(props: SessionRoomProps) {
       {error && <div className="notice-card">{error}</div>}
       {conversationStatus && <div className="notice-card notice-card--muted">{conversationStatus}</div>}
 
-      <div className="participant-board">
+      <div className={`participant-board ${isPreflight ? 'participant-board--hidden' : ''}`}>
         {visibleTableSeats.map((seat) => (
           <div className="participant-pill" key={seat.id}>
             <strong>{seat.name.trim() || seat.label}</strong>
@@ -1005,7 +1000,7 @@ export function SessionRoom(props: SessionRoomProps) {
         </div>
       )}
 
-      <div className="subtle-note">
+      <div className={`subtle-note ${isPreflight ? 'subtle-note--hidden' : ''}`}>
         {tableSeatsWithNotes
           ? `${tableSeatsWithNotes} seat cue${tableSeatsWithNotes === 1 ? '' : 's'} saved to help the GM keep the table straight.`
           : 'Add quick seat cues if two people sound similar on the same microphone.'}

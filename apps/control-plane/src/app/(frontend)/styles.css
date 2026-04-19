@@ -59,8 +59,8 @@ button {
 
 .player-app {
   margin: 0 auto;
-  max-width: 1280px;
-  padding: 20px 24px 88px;
+  max-width: 1080px;
+  padding: 20px 24px 96px;
 }
 
 .topbar {
@@ -107,7 +107,7 @@ button {
 }
 
 .surface--play {
-  gap: 24px;
+  gap: 18px;
 }
 
 .surface--centered {
@@ -750,7 +750,10 @@ button {
 
 .play-ready {
   display: grid;
-  gap: 24px;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 960px;
+  width: 100%;
 }
 
 .play-ready__header {
@@ -758,6 +761,7 @@ button {
   display: flex;
   gap: 20px;
   justify-content: space-between;
+  padding: 10px 4px 8px;
 }
 
 .play-ready__identity {
@@ -769,9 +773,30 @@ button {
 .play-ready__identity span {
   display: inline-flex;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 999px;
+}
+
+.play-ready__header h1 {
+  font-size: clamp(3rem, 7vw, 4.5rem);
+  letter-spacing: -0.04em;
+}
+
+.play-ready__header p:not(.eyebrow) {
+  font-size: 1.08rem;
+  margin: 12px 0 0;
+  max-width: 32rem;
+}
+
+.play-ready__footer {
+  color: rgba(242, 231, 221, 0.92);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  letter-spacing: -0.03em;
+  margin: 10px 0 0;
+  padding: 28px 0 0;
+  text-align: center;
 }
 
 .play-hero__actions {
@@ -819,7 +844,11 @@ button {
 }
 
 .library-card--compact {
-  gap: 16px;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(217, 176, 139, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(27, 18, 25, 0.94), rgba(17, 10, 16, 0.96));
+  gap: 14px;
+  padding: 20px 22px;
 }
 
 .library-card__summary {
@@ -827,14 +856,14 @@ button {
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  padding: 18px 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .library-card__summary span {
-  color: var(--muted);
+  color: var(--muted-strong);
   display: block;
   font-size: 0.8rem;
   letter-spacing: 0.08em;
@@ -845,7 +874,7 @@ button {
 .library-card__summary strong {
   display: block;
   font-family: var(--font-display), Georgia, serif;
-  font-size: 1.5rem;
+  font-size: clamp(2rem, 4vw, 2.6rem);
   margin-bottom: 6px;
 }
 
@@ -865,6 +894,34 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 18px;
+}
+
+.library-card--compact .library-card__header {
+  align-items: start;
+}
+
+.library-card--compact .library-card__header h2 {
+  font-size: 1.25rem;
+}
+
+.library-card--compact .library-card__lede {
+  display: none;
+}
+
+.library-card--compact .library-metrics {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.library-card--compact .library-metrics div {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.library-card--compact .inline-actions {
+  justify-content: flex-start;
 }
 
 .game-card__notes {
@@ -1124,6 +1181,14 @@ button {
   align-items: start;
 }
 
+.console-card--play {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  gap: 18px;
+  padding: 0;
+}
+
 .stack-panel--ready {
   gap: 20px;
 }
@@ -1131,6 +1196,18 @@ button {
 .panel-card--ready,
 .panel-card--table {
   gap: 18px;
+}
+
+.panel-card--ready {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(217, 176, 139, 0.1), transparent 38%),
+    linear-gradient(180deg, rgba(34, 23, 30, 0.92), rgba(22, 14, 21, 0.95));
+}
+
+.panel-card--table {
+  background:
+    radial-gradient(circle at 40% 0%, rgba(217, 176, 139, 0.08), transparent 48%),
+    linear-gradient(180deg, rgba(31, 20, 28, 0.94), rgba(19, 12, 18, 0.97));
 }
 
 .ready-grid {
@@ -1161,10 +1238,10 @@ button {
   color: var(--muted);
   display: flex;
   gap: 10px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-md);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .ready-checklist__item svg {
@@ -1173,26 +1250,43 @@ button {
 
 .ready-checklist__item--ready {
   color: var(--text);
-  border-color: rgba(184, 216, 203, 0.26);
-  background: rgba(184, 216, 203, 0.08);
+}
+
+.ready-checklist__item:not(.ready-checklist__item--ready) {
+  color: rgba(215, 200, 190, 0.9);
+}
+
+.ready-checklist__item svg {
+  color: rgba(215, 200, 190, 0.95);
+}
+
+.ready-checklist__item--ready svg {
+  color: var(--signal);
 }
 
 .table-seat-summary {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .table-seat-summary__card {
+  align-items: center;
   display: grid;
-  gap: 8px;
+  gap: 14px;
+  grid-template-columns: 44px minmax(0, 1fr);
   padding: 18px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
 }
 
-.table-seat-summary__card span {
+.table-seat-summary__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.table-seat-summary__copy span {
   color: var(--accent);
   font-size: 0.78rem;
   font-weight: 700;
@@ -1200,14 +1294,26 @@ button {
   text-transform: uppercase;
 }
 
-.table-seat-summary__card strong {
+.table-seat-summary__copy strong {
   font-family: var(--font-display), Georgia, serif;
   font-size: 1.45rem;
 }
 
-.table-seat-summary__card p {
+.table-seat-summary__copy p {
   color: var(--muted);
   margin: 0;
+}
+
+.table-seat-summary__icon {
+  align-items: center;
+  color: var(--accent);
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+  border-radius: 14px;
+  background: rgba(217, 176, 139, 0.1);
+  border: 1px solid rgba(217, 176, 139, 0.16);
 }
 
 .table-seat-editor {
@@ -1220,7 +1326,7 @@ button {
   display: grid;
   gap: 14px;
   justify-items: center;
-  padding-top: 8px;
+  padding-top: 18px;
   text-align: center;
 }
 
@@ -1252,7 +1358,7 @@ button {
 .panel-card {
   display: grid;
   gap: 18px;
-  padding: 22px;
+  padding: 24px;
 }
 
 .panel-card--centered {
@@ -1326,6 +1432,11 @@ button {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.participant-board--hidden,
+.subtle-note--hidden {
+  display: none;
 }
 
 .participant-pill {
@@ -1411,6 +1522,10 @@ button {
 
   .play-ready__header {
     flex-direction: column;
+  }
+
+  .play-ready__identity {
+    padding-top: 0;
   }
 
   .hero,
