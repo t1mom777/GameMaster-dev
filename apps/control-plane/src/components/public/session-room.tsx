@@ -231,6 +231,9 @@ export function SessionRoom(props: SessionRoomProps) {
   const [isEditingTable, setIsEditingTable] = useState(false)
   const [tableStatus, setTableStatus] = useState<string | null>(null)
   const [conversationStatus, setConversationStatus] = useState<string | null>(null)
+  const [playbackStatus, setPlaybackStatus] = useState<string | null>(null)
+  const [audioPlaybackBlocked, setAudioPlaybackBlocked] = useState(false)
+  const [isEnablingSpeaker, setIsEnablingSpeaker] = useState(false)
   const roomRef = useRef<Room | null>(null)
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map())
 
@@ -438,6 +441,8 @@ export function SessionRoom(props: SessionRoomProps) {
 
     track.attach(audio)
     void audio.play().catch((playbackError) => {
+      setAudioPlaybackBlocked(true)
+      setPlaybackStatus('This browser blocked speaker playback. Tap Enable speaker to hear the GM.')
       console.warn('Unable to start remote room audio playback.', playbackError)
     })
   }
@@ -456,13 +461,51 @@ export function SessionRoom(props: SessionRoomProps) {
     audioElementsRef.current.delete(sid)
   }
 
+  async function enableSpeakerPlayback(targetRoom?: Room | null) {
+    const activeRoom = targetRoom || roomRef.current
+    if (!activeRoom) {
+      return
+    }
+
+    setIsEnablingSpeaker(true)
+    try {
+      await activeRoom.startAudio()
+      const blocked = !activeRoom.canPlaybackAudio
+      setAudioPlaybackBlocked(blocked)
+      setPlaybackStatus(blocked ? 'Speaker playback is still blocked. Tap Enable speaker again after interacting with the page.' : 'Speaker playback enabled.')
+    } catch (playbackError) {
+      setAudioPlaybackBlocked(true)
+      setPlaybackStatus(
+        playbackError instanceof Error && playbackError.message.trim()
+          ? playbackError.message
+          : 'Speaker playback is blocked until this browser receives another tap.',
+      )
+    } finally {
+      setIsEnablingSpeaker(false)
+    }
+  }
+
   async function connectToRoom(bundle: JoinBundle) {
-    const room = new Room()
+    const room = new Room({
+      webAudioMix: true,
+    })
     forceLegacyRtcSignalPath(room)
     roomRef.current = room
 
     room.on(RoomEvent.ParticipantConnected, () => syncParticipants(room))
     room.on(RoomEvent.ParticipantDisconnected, () => syncParticipants(room))
+    room.on(RoomEvent.AudioPlaybackStatusChanged, (canPlayback) => {
+      const blocked = !canPlayback
+      setAudioPlaybackBlocked(blocked)
+      setPlaybackStatus(blocked ? 'This browser blocked speaker playback. Tap Enable speaker to hear the GM.' : null)
+    })
+    room.on(RoomEvent.MediaDevicesError, (deviceError) => {
+      setError(
+        deviceError instanceof Error && deviceError.message.trim()
+          ? deviceError.message
+          : 'The browser reported a media device error while opening voice.',
+      )
+    })
     room.on(RoomEvent.TrackSubscribed, (track) => {
       if (track instanceof RemoteTrack && track.sid) {
         attachAudio(track, track.sid)
@@ -481,7 +524,15 @@ export function SessionRoom(props: SessionRoomProps) {
       setStep('preflight')
       setJoinBundle(null)
       setMicEnabled(true)
+      setAudioPlaybackBlocked(false)
+      setPlaybackStatus(null)
     })
+
+    try {
+      await room.startAudio()
+    } catch {
+      // Mobile browsers can still require a second explicit tap after the room is connected.
+    }
 
     await room.connect(bundle.serverUrl, bundle.token)
     await room.localParticipant.setMicrophoneEnabled(true)
@@ -494,10 +545,18 @@ export function SessionRoom(props: SessionRoomProps) {
       }
     }
 
+    try {
+      await room.startAudio()
+    } catch {
+      // Keep the room live and show recovery UI if the browser blocks speaker playback.
+    }
+
     syncParticipants(room)
     setJoinBundle(bundle)
     setIsConnected(true)
     setMicEnabled(true)
+    setAudioPlaybackBlocked(!room.canPlaybackAudio)
+    setPlaybackStatus(room.canPlaybackAudio ? null : 'This browser blocked speaker playback. Tap Enable speaker to hear the GM.')
     setStep('live')
   }
 
@@ -639,6 +698,8 @@ export function SessionRoom(props: SessionRoomProps) {
     setIsConnected(false)
     setMicEnabled(true)
     setParticipantRoster([])
+    setAudioPlaybackBlocked(false)
+    setPlaybackStatus(null)
     setError(null)
     setStep('preflight')
   }
@@ -944,6 +1005,18 @@ export function SessionRoom(props: SessionRoomProps) {
             </p>
 
             <div className="inline-actions">
+              {audioPlaybackBlocked && (
+                <button
+                  className="button button--ghost"
+                  disabled={isEnablingSpeaker}
+                  onClick={() => void enableSpeakerPlayback()}
+                  type="button"
+                >
+                  {isEnablingSpeaker ? <LoaderCircle className="spin" size={18} /> : <Radio size={18} />}
+                  Enable speaker
+                </button>
+              )}
+
               <button className="button button--ghost" disabled={!isConnected} onClick={toggleMic} type="button">
                 {micEnabled ? <Mic size={18} /> : <MicOff size={18} />}
                 {micEnabled ? 'Mute mic' : 'Unmute mic'}
@@ -964,6 +1037,7 @@ export function SessionRoom(props: SessionRoomProps) {
       )}
 
       {error && <div className="notice-card">{error}</div>}
+      {playbackStatus && <div className="notice-card notice-card--muted">{playbackStatus}</div>}
       {conversationStatus && <div className="notice-card notice-card--muted">{conversationStatus}</div>}
 
       <div className={`participant-board ${isPreflight ? 'participant-board--hidden' : ''}`}>
