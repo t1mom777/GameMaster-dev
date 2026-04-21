@@ -13,7 +13,7 @@ import {
   Settings2,
   UserRound,
 } from 'lucide-react'
-import { ParticipantKind, RemoteTrack, Room, RoomEvent, Track } from 'livekit-client'
+import { ConnectionState, ParticipantKind, RemoteTrack, Room, RoomEvent, Track } from 'livekit-client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { readApiPayload } from './api-response'
@@ -209,6 +209,37 @@ function forceLegacyRtcSignalPath(room: Room) {
   }
 
   engine.__gmLegacyRtcPathForced = true
+}
+
+function shouldRetryWithLegacySignalPath(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const message = error.message.trim().toLowerCase()
+  if (!message) {
+    return false
+  }
+
+  return (
+    message.includes('could not establish pc connection') ||
+    message.includes('connection timeout') ||
+    message.includes('peerconnection') ||
+    message.includes('negotiat') ||
+    message.includes('signal') ||
+    message.includes('transport')
+  )
+}
+
+function buildAudioCaptureOptions(selectedMicId: string) {
+  return {
+    autoGainControl: true,
+    channelCount: 1,
+    deviceId: selectedMicId ? { exact: selectedMicId } : undefined,
+    echoCancellation: true,
+    noiseSuppression: true,
+    sampleRate: 48_000,
+  }
 }
 
 export function SessionRoom(props: SessionRoomProps) {
@@ -485,11 +516,17 @@ export function SessionRoom(props: SessionRoomProps) {
     }
   }
 
-  async function connectToRoom(bundle: JoinBundle) {
-    const room = new Room({
-      webAudioMix: true,
+  function bindRoomEvents(room: Room) {
+    room.on(RoomEvent.ConnectionStateChanged, (state) => {
+      if (state === ConnectionState.Reconnecting || state === ConnectionState.SignalReconnecting) {
+        setConversationStatus('Reconnecting the live voice session.')
+        return
+      }
+
+      if (state === ConnectionState.Connected) {
+        setConversationStatus(null)
+      }
     })
-    forceLegacyRtcSignalPath(room)
     roomRef.current = room
 
     room.on(RoomEvent.ParticipantConnected, () => syncParticipants(room))
@@ -518,6 +555,11 @@ export function SessionRoom(props: SessionRoomProps) {
       }
       syncParticipants(room)
     })
+    room.on(RoomEvent.TrackSubscriptionFailed, (_trackSid, participant) => {
+      setError(
+        `The browser joined the room, but could not receive ${participant.name || participant.identity}. Try Stop conversation and Start voice again.`,
+      )
+    })
     room.on(RoomEvent.Disconnected, () => {
       setIsConnected(false)
       setParticipantRoster([])
@@ -527,6 +569,20 @@ export function SessionRoom(props: SessionRoomProps) {
       setAudioPlaybackBlocked(false)
       setPlaybackStatus(null)
     })
+  }
+
+  async function connectRoomAttempt(bundle: JoinBundle, useLegacySignalPath: boolean) {
+    const room = new Room()
+    if (useLegacySignalPath) {
+      forceLegacyRtcSignalPath(room)
+    }
+    bindRoomEvents(room)
+
+    try {
+      await room.prepareConnection(bundle.serverUrl, bundle.token)
+    } catch {
+      // Connection warmup is best-effort.
+    }
 
     try {
       await room.startAudio()
@@ -535,14 +591,12 @@ export function SessionRoom(props: SessionRoomProps) {
     }
 
     await room.connect(bundle.serverUrl, bundle.token)
-    await room.localParticipant.setMicrophoneEnabled(true)
-
-    if (selectedMicId) {
-      try {
-        await room.switchActiveDevice('audioinput', selectedMicId)
-      } catch {
-        // Device switching is best-effort. Stay connected even if it fails.
-      }
+    const microphonePublication = await room.localParticipant.setMicrophoneEnabled(
+      true,
+      buildAudioCaptureOptions(selectedMicId),
+    )
+    if (!microphonePublication) {
+      throw new Error('The browser opened the room but did not publish microphone audio.')
     }
 
     try {
@@ -558,6 +612,22 @@ export function SessionRoom(props: SessionRoomProps) {
     setAudioPlaybackBlocked(!room.canPlaybackAudio)
     setPlaybackStatus(room.canPlaybackAudio ? null : 'This browser blocked speaker playback. Tap Enable speaker to hear the GM.')
     setStep('live')
+  }
+
+  async function connectToRoom(bundle: JoinBundle) {
+    try {
+      await connectRoomAttempt(bundle, false)
+    } catch (initialError) {
+      roomRef.current?.disconnect()
+      roomRef.current = null
+
+      if (!shouldRetryWithLegacySignalPath(initialError)) {
+        throw initialError
+      }
+
+      setConversationStatus('Retrying voice with compatibility transport.')
+      await connectRoomAttempt(bundle, true)
+    }
   }
 
   async function saveTableSetup(showSuccessMessage: boolean): Promise<boolean> {
