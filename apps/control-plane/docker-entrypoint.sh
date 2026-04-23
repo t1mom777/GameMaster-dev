@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-HOSTNAME="${HOSTNAME:-0.0.0.0}" node server.js &
+HOSTNAME="0.0.0.0" node server.js &
 SERVER_PID=$!
 
 cleanup() {
