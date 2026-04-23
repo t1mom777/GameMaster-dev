@@ -27,6 +27,8 @@ services:
       GM_BOOTSTRAP_ADMIN_EMAIL: ${GM_BOOTSTRAP_ADMIN_EMAIL}
       GM_BOOTSTRAP_ADMIN_PASSWORD: ${GM_BOOTSTRAP_ADMIN_PASSWORD}
       GM_BOOTSTRAP_ADMIN_NAME: ${GM_BOOTSTRAP_ADMIN_NAME}
+      SERVICE_URL_CONTROL_PLANE: https://gm.dima.click
+      SERVICE_FQDN_CONTROL_PLANE: gm.dima.click
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,6 +36,22 @@ services:
         condition: service_started
     ports:
       - "3000"
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.gzip.compress=true
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-control-plane.entryPoints=http
+      - traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-control-plane.middlewares=redirect-to-https
+      - 'traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-control-plane.rule=Host(`gm.dima.click`) && PathPrefix(`/`)'
+      - traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-control-plane.service=http-0-occoskkocc4ocgcs8ck40gg4-control-plane
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-control-plane.entryPoints=https
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-control-plane.middlewares=gzip
+      - 'traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-control-plane.rule=Host(`gm.dima.click`) && PathPrefix(`/`)'
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-control-plane.service=https-0-occoskkocc4ocgcs8ck40gg4-control-plane
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-control-plane.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-control-plane.tls=true
+      - traefik.http.services.http-0-occoskkocc4ocgcs8ck40gg4-control-plane.loadbalancer.server.port=3000
+      - traefik.http.services.https-0-occoskkocc4ocgcs8ck40gg4-control-plane.loadbalancer.server.port=3000
 
   gm-agent:
     build:
