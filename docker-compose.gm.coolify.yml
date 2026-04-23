@@ -4,6 +4,7 @@ services:
       context: ./apps/control-plane
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      PORT: 3000
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
