@@ -276,6 +276,7 @@ export async function ensureSchemaRepairs(payload: Payload) {
       ALTER TABLE payload_locked_documents_rels
       ADD COLUMN IF NOT EXISTS admins_id integer,
       ADD COLUMN IF NOT EXISTS players_id integer,
+      ADD COLUMN IF NOT EXISTS prelaunch_leads_id integer,
       ADD COLUMN IF NOT EXISTS player_mappings_id integer,
       ADD COLUMN IF NOT EXISTS campaigns_id integer,
       ADD COLUMN IF NOT EXISTS worlds_id integer,
