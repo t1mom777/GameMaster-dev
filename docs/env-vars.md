@@ -9,7 +9,7 @@
 | `POSTGRES_USER` | yes | Postgres user |
 | `POSTGRES_PASSWORD` | yes | Postgres password |
 | `PAYLOAD_SECRET` | yes | Payload session/auth secret |
-| `PAYLOAD_PUBLIC_SERVER_URL` | yes | Public Payload base URL, e.g. `https://game.dima.click` |
+| `PAYLOAD_PUBLIC_SERVER_URL` | yes | Public Payload base URL, e.g. `https://gm.dima.click` |
 | `NEXT_PUBLIC_SITE_URL` | yes | Public frontend origin |
 | `GM_INTERNAL_API_TOKEN` | yes | Internal bearer token shared between Payload and the agent service |
 | `GM_BOOTSTRAP_ADMIN_EMAIL` | required for first deploy | First Payload admin email used by the startup bootstrap |
@@ -50,7 +50,13 @@
 |---|---|---|
 | `GOOGLE_CLIENT_ID` | yes for Google player sign-in | OAuth client id used by the public homepage login |
 | `GOOGLE_CLIENT_SECRET` | yes for Google player sign-in | OAuth client secret used for the server-side code exchange |
-| `GOOGLE_REDIRECT_URI` | recommended | Explicit callback URL, e.g. `https://game.dima.click/auth/google/callback` |
+| `GOOGLE_REDIRECT_URI` | recommended | Explicit callback URL, e.g. `https://gm.dima.click/auth/google/callback` |
+
+## Public marketing
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_KICKSTARTER_PRELAUNCH_URL` | no | Kickstarter prelaunch URL. When unset, `/kickstarter` shows a safe “coming soon” CTA. |
 
 ## Provider auth notes
 
@@ -66,8 +72,9 @@ POSTGRES_DB=gamemaster
 POSTGRES_USER=gamemaster
 POSTGRES_PASSWORD=change-me
 PAYLOAD_SECRET=change-me
-PAYLOAD_PUBLIC_SERVER_URL=https://game.dima.click
-NEXT_PUBLIC_SITE_URL=https://game.dima.click
+PAYLOAD_PUBLIC_SERVER_URL=https://gm.dima.click
+NEXT_PUBLIC_SITE_URL=https://gm.dima.click
+NEXT_PUBLIC_KICKSTARTER_PRELAUNCH_URL=
 NEXT_PUBLIC_LIVEKIT_URL=wss://rtc.game.dima.click
 LIVEKIT_HOST=http://livekit:7880
 LIVEKIT_API_KEY=devkey
@@ -81,7 +88,7 @@ GOOGLE_API_KEY=...
 DEEPGRAM_API_KEY=...
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
-GOOGLE_REDIRECT_URI=https://game.dima.click/auth/google/callback
+GOOGLE_REDIRECT_URI=https://gm.dima.click/auth/google/callback
 GM_INTERNAL_API_TOKEN=replace-this
 GM_BOOTSTRAP_ADMIN_EMAIL=admin@example.com
 GM_BOOTSTRAP_ADMIN_PASSWORD=change-me-now

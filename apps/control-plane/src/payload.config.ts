@@ -11,6 +11,7 @@ import { Documents } from './collections/Documents'
 import { GameSessions } from './collections/GameSessions'
 import { PlayerMappings } from './collections/PlayerMappings'
 import { Players } from './collections/Players'
+import { PrelaunchLeads } from './collections/PrelaunchLeads'
 import { ProviderConnections } from './collections/ProviderConnections'
 import { Rulesets } from './collections/Rulesets'
 import { Worlds } from './collections/Worlds'
@@ -30,6 +31,7 @@ import {
   publicPlayerLibrarySaveEndpoint,
   publicPlayerLibraryUpdateEndpoint,
 } from './endpoints/public-player-library'
+import { publicPrelaunchLeadsEndpoint } from './endpoints/public-prelaunch-leads'
 import { publicSessionsEndpoint } from './endpoints/public-sessions'
 import { runtimeRetrieveEndpoint } from './endpoints/runtime-retrieve'
 import { runtimeSessionEndpoint } from './endpoints/runtime-session'
@@ -52,6 +54,7 @@ export default buildConfig({
   collections: [
     Admins,
     Players,
+    PrelaunchLeads,
     PlayerMappings,
     Campaigns,
     Worlds,
@@ -72,6 +75,7 @@ export default buildConfig({
     publicPlayerLibrarySaveEndpoint,
     publicPlayerLibraryUpdateEndpoint,
     publicPlayerLibraryDeleteEndpoint,
+    publicPrelaunchLeadsEndpoint,
     internalBootstrapEndpoint,
     internalDocumentStorageEndpoint,
     runtimeSessionEndpoint,

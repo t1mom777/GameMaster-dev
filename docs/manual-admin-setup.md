@@ -2,13 +2,13 @@
 
 ## Access points
 
-- Public app: `https://game.dima.click`
-- Player sign-in: `https://game.dima.click/login`
-- Player rooms: `https://game.dima.click/rooms`
-- Player session page pattern: `https://game.dima.click/session/<session-slug>`
-- Payload admin: `https://game.dima.click/t1m0m`
-- Control-plane health: `https://game.dima.click/api/gm/health`
-- Public session listing: `https://game.dima.click/api/gm/public/sessions`
+- Dev public app: `https://gm.dima.click`
+- Dev player sign-in: `https://gm.dima.click/login`
+- Dev player rooms: `https://gm.dima.click/rooms`
+- Dev player session page pattern: `https://gm.dima.click/session/<session-slug>`
+- Dev Payload admin: `https://gm.dima.click/t1m0m`
+- Dev control-plane health: `https://gm.dima.click/api/gm/health`
+- Dev public session listing: `https://gm.dima.click/api/gm/public/sessions`
 - LiveKit RTC endpoint: `wss://rtc.game.dima.click`
 
 ## What the admin controls manually
@@ -28,7 +28,7 @@ The migration stack is intentionally built so advanced admin behavior stays insi
 
 ## Manual first-pass setup
 
-1. Log into `https://game.dima.click/t1m0m`.
+1. Log into `https://gm.dima.click/t1m0m`.
 2. Open `Players` and confirm the Google-signed-in player records look correct.
 3. Open `Runtime Defaults`.
 4. Confirm the provider defaults you want:
@@ -94,8 +94,8 @@ Signed-in players can now manage one personal rulebook from the player app itsel
 
 How it works:
 
-1. The player signs in at `https://game.dima.click/login`.
-2. The player opens `https://game.dima.click/rooms`.
+1. The player signs in at `https://gm.dima.click/login`.
+2. The player opens `https://gm.dima.click/rooms`.
 3. The player uploads or replaces a personal rulebook.
 4. When that player joins any room, their personal rulebook is attached to the room context automatically.
 
@@ -126,22 +126,22 @@ Required in Coolify for public Google login:
 
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REDIRECT_URI=https://game.dima.click/auth/google/callback`
+- `GOOGLE_REDIRECT_URI=https://gm.dima.click/auth/google/callback`
 
 Google Cloud console setup:
 
 1. Create or reuse a Web application OAuth client.
-2. Add `https://game.dima.click` as an authorized JavaScript origin.
-3. Add `https://game.dima.click/auth/google/callback` as an authorized redirect URI.
+2. Add `https://gm.dima.click` as an authorized JavaScript origin.
+3. Add `https://gm.dima.click/auth/google/callback` as an authorized redirect URI.
 4. Redeploy the control-plane after saving the env vars in Coolify.
 
 Player flow:
 
-1. Open `https://game.dima.click`.
+1. Open `https://gm.dima.click`.
 2. Click `Sign in with Google`.
 3. Complete Google consent.
 4. Return to the player app signed in.
-5. Open `https://game.dima.click/rooms`.
+5. Open `https://gm.dima.click/rooms`.
 6. Pick a room, check the microphone, confirm player labels if needed, and enter the session.
 
 ## Important auth limitation
@@ -176,10 +176,10 @@ If the public site renders as raw HTML or the admin route looks blank:
 1. Hard refresh the page.
 2. Confirm `/_next/static/...` assets return `200`.
 3. Confirm the latest control-plane deployment finished cleanly.
-4. Re-open `https://game.dima.click/login` and `https://game.dima.click/t1m0m`.
+4. Re-open `https://gm.dima.click/login` and `https://gm.dima.click/t1m0m`.
 
 ## Current production caveats
 
-- The old app at `gm.dima.click` remains protected and untouched.
+- Production `game.dima.click` remains protected and untouched until owner approval.
 - LiveKit is still in migration/preview mode and needs production hardening before cutover.
 - Retrieval and GM voice responses require the provider keys above to be present.

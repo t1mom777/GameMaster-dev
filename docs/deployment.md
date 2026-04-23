@@ -2,7 +2,7 @@
 
 ## Coolify topology
 
-Deploy this repo as a new project, not as an overwrite of the old GM app.
+Deploy this repo as the dev project behind `gm.dima.click`. The old GM app can be overwritten on that domain, but production `game.dima.click` must remain unchanged until the owner approves a cutover.
 
 Recommended application layout:
 
@@ -14,8 +14,8 @@ Recommended application layout:
 
 ## Public routes
 
-- `https://game.dima.click` -> control-plane public frontend
-- `https://game.dima.click/t1m0m` -> Payload admin
+- `https://gm.dima.click` -> dev control-plane public frontend
+- `https://gm.dima.click/t1m0m` -> dev Payload admin
 - `wss://rtc.game.dima.click` -> LiveKit signaling
 
 ## Compose flow
@@ -33,7 +33,7 @@ flowchart LR
 
 ## Notes
 
-- Payload is the only web app that needs the main `game.dima.click` domain.
+- Payload is the only web app that needs the main dev `gm.dima.click` domain.
 - LiveKit should be exposed on a separate public subdomain such as `rtc.game.dima.click`.
 - The control-plane container runs `payload migrate` on startup, launches the Next standalone server, and then triggers an internal idempotent bootstrap to seed the first admin and demo content.
 - LiveKit is pinned to explicit public RTC ports in compose:
@@ -52,5 +52,5 @@ See [Backup and Restore Plan](./backup-and-restore.md) for the operational basel
 1. Set `GM_BOOTSTRAP_ADMIN_EMAIL` and `GM_BOOTSTRAP_ADMIN_PASSWORD` in Coolify for the control-plane service.
 2. Deploy or redeploy the control-plane service.
 3. Confirm the startup bootstrap created the first admin, campaign, ruleset, session, runtime defaults, and seed documents.
-4. Open `https://game.dima.click/t1m0m` and log in with the bootstrap admin.
+4. Open `https://gm.dima.click/t1m0m` and log in with the bootstrap admin.
 5. Verify the public homepage lists the seeded session.

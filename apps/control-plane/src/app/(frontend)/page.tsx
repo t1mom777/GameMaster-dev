@@ -102,6 +102,12 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
               <p>{supportLine}</p>
             </div>
 
+            {!playerSession ? (
+              <Link className="landing-minimal__founder-link" href="/kickstarter">
+                Founder Access opens on Kickstarter
+              </Link>
+            ) : null}
+
             {authNotice ? <div className="notice-card landing-minimal__notice">{authNotice}</div> : null}
           </div>
         </div>

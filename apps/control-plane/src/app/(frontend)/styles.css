@@ -391,6 +391,12 @@ button {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.button--disabled {
+  cursor: default;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
 .button--google {
   background: linear-gradient(180deg, rgba(33, 23, 28, 0.96), rgba(24, 16, 21, 0.96));
   border-color: rgba(217, 176, 139, 0.48);
@@ -514,6 +520,15 @@ button {
 .landing-minimal__meta p,
 .landing-minimal__footer-copy p {
   margin: 0;
+}
+
+.landing-minimal__founder-link {
+  color: var(--accent);
+  font-size: 0.95rem;
+  margin-top: 4px;
+  text-decoration: underline;
+  text-decoration-color: rgba(217, 176, 139, 0.32);
+  text-underline-offset: 5px;
 }
 
 .landing-minimal__notice {
@@ -1468,6 +1483,181 @@ button {
   margin-top: 8px;
 }
 
+.kickstarter-page {
+  gap: 24px;
+}
+
+.kickstarter-hero,
+.kickstarter-card,
+.reward-card {
+  backdrop-filter: blur(18px);
+  background:
+    radial-gradient(circle at 22% 12%, rgba(217, 176, 139, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(31, 20, 28, 0.94), rgba(15, 9, 15, 0.97));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+}
+
+.kickstarter-hero {
+  display: grid;
+  gap: 24px;
+  justify-items: center;
+  overflow: hidden;
+  padding: clamp(34px, 7vw, 72px);
+  position: relative;
+  text-align: center;
+}
+
+.kickstarter-hero h1,
+.kickstarter-card h2,
+.kickstarter-section h2,
+.reward-card h3 {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  margin: 0;
+}
+
+.kickstarter-hero h1 {
+  font-size: clamp(3.1rem, 8vw, 6.4rem);
+  max-width: 12ch;
+}
+
+.kickstarter-hero p:not(.eyebrow),
+.kickstarter-card p,
+.reward-card p,
+.kickstarter-roadmap p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.kickstarter-hero p:not(.eyebrow) {
+  font-size: clamp(1.02rem, 2vw, 1.22rem);
+  max-width: 48rem;
+}
+
+.kickstarter-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.kickstarter-hero__facts {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 10px;
+  max-width: 760px;
+  width: 100%;
+}
+
+.kickstarter-hero__facts div,
+.kickstarter-roadmap div {
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.kickstarter-hero__facts span,
+.kickstarter-roadmap span {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.kickstarter-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+}
+
+.kickstarter-card {
+  display: grid;
+  gap: 16px;
+  padding: 28px;
+}
+
+.kickstarter-card--center {
+  justify-items: center;
+  text-align: center;
+}
+
+.kickstarter-card--form {
+  max-width: 560px;
+  text-align: left;
+  width: 100%;
+}
+
+.kickstarter-card h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.kickstarter-section {
+  display: grid;
+  gap: 18px;
+}
+
+.kickstarter-rewards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reward-card {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+  min-height: 230px;
+  padding: 22px;
+}
+
+.reward-card--featured {
+  border-color: rgba(217, 176, 139, 0.42);
+  box-shadow: 0 26px 90px rgba(217, 176, 139, 0.08);
+}
+
+.reward-card strong {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.reward-card h3 {
+  font-size: 1.7rem;
+}
+
+.kickstarter-roadmap {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.prelaunch-form {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.prelaunch-form__success,
+.prelaunch-form__error {
+  margin: 0;
+}
+
+.prelaunch-form__success {
+  color: var(--signal);
+}
+
+.prelaunch-form__error {
+  color: var(--danger);
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }
@@ -1498,6 +1688,7 @@ button {
   .section-block--split,
   .session-shell,
   .auth-shell,
+  .kickstarter-grid,
   .room-grid,
   .room-grid--wide {
     grid-template-columns: 1fr;
@@ -1548,6 +1739,9 @@ button {
   .room-card__stats,
   .session-hero__facts,
   .session-strip,
+  .kickstarter-hero__facts,
+  .kickstarter-rewards,
+  .kickstarter-roadmap,
   .rulebook-meta,
   .library-metrics,
   .game-card__facts,

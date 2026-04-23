@@ -1,8 +1,8 @@
 # GameMaster
 
-GameMaster is the migration stack for `game.dima.click`, with a public player app separated cleanly from a hidden admin control plane at `/t1m0m`.
+GameMaster is the dev stack for `gm.dima.click`, with a public player app separated cleanly from a hidden admin control plane at `/t1m0m`.
 
-The old GM app remains the protected reference system and is not part of this rollout.
+`game.dima.click` remains the stable production target. Do not move changes from `gm.dima.click` to `game.dima.click` without explicit owner approval.
 
 ## Services
 
@@ -44,6 +44,8 @@ The old GM app remains the protected reference system and is not part of this ro
 - [Environment Variables](./docs/env-vars.md)
 - [Deployment Instructions](./docs/deployment.md)
 - [Manual Admin Setup](./docs/manual-admin-setup.md)
+- [Kickstarter Campaign](./docs/kickstarter-campaign.md)
+- [Kickstarter Outreach Calendar](./docs/kickstarter-outreach-calendar.md)
 - [Backup and Restore Plan](./docs/backup-and-restore.md)
 - [Payload Collections](./docs/payload-collection-model.md)
 - [Qdrant Strategy](./docs/qdrant-strategy.md)
@@ -55,9 +57,9 @@ The old GM app remains the protected reference system and is not part of this ro
 1. Configure env from [`docs/env-vars.md`](./docs/env-vars.md).
 2. Deploy the stack with [`docker-compose.coolify.yml`](./docker-compose.coolify.yml).
 3. Open:
-   - public app: `https://game.dima.click`
-   - admin: `https://game.dima.click/t1m0m`
+   - dev public app: `https://gm.dima.click`
+   - dev admin: `https://gm.dima.click/t1m0m`
 
 Each control-plane deploy applies the checked-in Payload migrations before serving traffic, so a fresh Postgres volume can bootstrap the schema without manual SQL.
 
-The stack is designed so the old GM app can remain live while this repo is brought up separately.
+The stack is designed so dev work happens on `gm.dima.click`; production `game.dima.click` is updated only after manual approval.
