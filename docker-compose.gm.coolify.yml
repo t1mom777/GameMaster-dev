@@ -1,0 +1,82 @@
+services:
+  control-plane:
+    build:
+      context: ./apps/control-plane
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      NEXT_PUBLIC_KICKSTARTER_PRELAUNCH_URL: ${NEXT_PUBLIC_KICKSTARTER_PRELAUNCH_URL:-}
+      NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_HOST: ${LIVEKIT_HOST}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      QDRANT_URL: ${QDRANT_URL}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-gm_rulebook_chunks}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      GM_INTERNAL_API_TOKEN: ${GM_INTERNAL_API_TOKEN}
+      GM_SYSTEM_NAME: ${GM_SYSTEM_NAME:-GameMaster}
+      GM_BOOTSTRAP_ADMIN_EMAIL: ${GM_BOOTSTRAP_ADMIN_EMAIL}
+      GM_BOOTSTRAP_ADMIN_PASSWORD: ${GM_BOOTSTRAP_ADMIN_PASSWORD}
+      GM_BOOTSTRAP_ADMIN_NAME: ${GM_BOOTSTRAP_ADMIN_NAME}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    ports:
+      - "3000"
+
+  gm-agent:
+    build:
+      context: ./services/gm-agent
+    environment:
+      LIVEKIT_URL: ${LIVEKIT_HOST}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      CONTROL_PLANE_URL: ${PAYLOAD_INTERNAL_URL:-http://control-plane:3000}
+      GM_INTERNAL_API_TOKEN: ${GM_INTERNAL_API_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
+      QDRANT_URL: ${QDRANT_URL}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-gm_rulebook_chunks}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      GM_SYSTEM_NAME: ${GM_SYSTEM_NAME:-GameMaster}
+    depends_on:
+      control-plane:
+        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gamemaster}
+      POSTGRES_USER: ${POSTGRES_USER:-gamemaster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gamemaster} -d ${POSTGRES_DB:-gamemaster}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.2
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333"
+
+volumes:
+  postgres_data:
+  qdrant_data:

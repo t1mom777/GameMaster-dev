@@ -20,7 +20,8 @@ Recommended application layout:
 
 ## Compose flow
 
-Use [`docker-compose.coolify.yml`](../docker-compose.coolify.yml) as the source of truth.
+Use [`docker-compose.gm.coolify.yml`](../docker-compose.gm.coolify.yml) as the dev source of truth for `gm.dima.click`.
+Use [`docker-compose.coolify.yml`](../docker-compose.coolify.yml) only for the full production-style stack after explicit approval.
 
 ```mermaid
 flowchart LR
@@ -34,7 +35,8 @@ flowchart LR
 ## Notes
 
 - Payload is the only web app that needs the main dev `gm.dima.click` domain.
-- LiveKit should be exposed on a separate public subdomain such as `rtc.game.dima.click`.
+- The dev compose intentionally does not bind LiveKit host media ports, because the production-style stack already owns those ports.
+- Until a dedicated dev RTC hostname is assigned, dev can reuse `wss://rtc.game.dima.click` through `NEXT_PUBLIC_LIVEKIT_URL` and `LIVEKIT_HOST`.
 - The control-plane container runs `payload migrate` on startup, launches the Next standalone server, and then triggers an internal idempotent bootstrap to seed the first admin and demo content.
 - LiveKit is pinned to explicit public RTC ports in compose:
   - `7881/tcp` for WebRTC over TCP
