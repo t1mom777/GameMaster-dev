@@ -718,6 +718,8 @@ export async function ensureSchemaRepairs(payload: Payload) {
         deepgram_model text,
         elevenlabs_api_key text,
         elevenlabs_voice_id text,
+        inworld_api_key text,
+        inworld_model text,
         updated_at timestamp with time zone DEFAULT now(),
         created_at timestamp with time zone DEFAULT now()
       )
@@ -739,6 +741,8 @@ export async function ensureSchemaRepairs(payload: Payload) {
       ADD COLUMN IF NOT EXISTS deepgram_model text,
       ADD COLUMN IF NOT EXISTS elevenlabs_api_key text,
       ADD COLUMN IF NOT EXISTS elevenlabs_voice_id text,
+      ADD COLUMN IF NOT EXISTS inworld_api_key text,
+      ADD COLUMN IF NOT EXISTS inworld_model text,
       ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now(),
       ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now()
     `,
@@ -959,6 +963,10 @@ export async function runBootstrap(payload: Payload): Promise<BootstrapSummary> 
     elevenlabs: {
       apiKey: process.env.ELEVENLABS_API_KEY || '',
       voiceId: '',
+    },
+    inworld: {
+      apiKey: '',
+      model: 'inworld-tts-1.5-max',
     },
     instructions:
       'Use an original voice profile with cool detachment, dry intelligence, and understated wit. Speak with precise diction, measured pacing, and calm authority. Favor shorter sentences. Use pauses deliberately. Let the cadence feel clipped, observant, and faintly British-coded without becoming performative. Keep sarcasm subtle, controlled, and diagnostic rather than playful. Sound slightly tired, highly competent, and never rushed. Avoid warmth, melodrama, cartoonish emphasis, or exaggerated character acting.',

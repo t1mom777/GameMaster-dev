@@ -46,6 +46,7 @@ export function VoicePreviewField() {
           voiceSettings: {
             deepgram: asObject(formData.deepgram),
             elevenlabs: asObject(formData.elevenlabs),
+            inworld: asObject(formData.inworld),
             instructions: formData.instructions ?? null,
             openai: asObject(formData.openai),
             pitch: formData.pitch ?? null,

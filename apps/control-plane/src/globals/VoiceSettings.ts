@@ -15,6 +15,10 @@ const providerOptions = [
     label: 'ElevenLabs',
     value: 'elevenlabs',
   },
+  {
+    label: 'Inworld',
+    value: 'inworld',
+  },
 ]
 
 export const VoiceSettings: GlobalConfig = {
@@ -39,7 +43,8 @@ export const VoiceSettings: GlobalConfig = {
     },
     {
       admin: {
-        description: 'Voice id or model slug. For Deepgram you can use a short suffix like thalia-en or a full voice id like aura-asteria-en.',
+        description:
+          'Voice id or model slug. For Inworld use a voice name like Sebastian. For Deepgram you can use a short suffix like thalia-en or a full voice id like aura-asteria-en.',
       },
       defaultValue: 'thalia-en',
       name: 'voice',
@@ -131,6 +136,27 @@ export const VoiceSettings: GlobalConfig = {
         },
       ],
       name: 'elevenlabs',
+      type: 'group',
+    },
+    {
+      admin: {
+        condition: (_, siblingData) => siblingData?.provider === 'inworld',
+      },
+      fields: [
+        {
+          admin: {
+            description: 'Base64 Inworld API key. Prefer storing it in Coolify as INWORLD_API_KEY and leaving this editable for overrides.',
+          },
+          name: 'apiKey',
+          type: 'text',
+        },
+        {
+          defaultValue: 'inworld-tts-1.5-max',
+          name: 'model',
+          type: 'text',
+        },
+      ],
+      name: 'inworld',
       type: 'group',
     },
   ],

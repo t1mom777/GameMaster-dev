@@ -17,7 +17,7 @@ type OwnerPlayerRecord = {
   ttsSettings?: {
     instructions?: string | null
     pitch?: number | null
-    provider?: 'openai' | 'deepgram' | 'elevenlabs' | null
+    provider?: 'openai' | 'deepgram' | 'elevenlabs' | 'inworld' | null
     speed?: number | null
     useGlobalSettings?: boolean | null
     voice?: string | null
@@ -81,6 +81,13 @@ export async function loadRuntimeContext(payload: Payload, session: SessionRecor
       } as never).catch(() => null)) || null) as OwnerPlayerRecord | null)
     : null
   const resolvedTTS = await getResolvedTTSSettings(payload, ownerPlayer)
+  const defaultTTSModel =
+    resolvedTTS.provider === 'openai'
+      ? 'gpt-4o-mini-tts'
+      : resolvedTTS.provider === 'inworld'
+        ? 'inworld-tts-1.5-max'
+        : 'aura-2'
+  const defaultTTSVoice = resolvedTTS.provider === 'inworld' ? 'Sebastian' : 'alloy'
 
   let activeDocumentIds =
     session.activeDocuments
@@ -120,11 +127,14 @@ export async function loadRuntimeContext(payload: Payload, session: SessionRecor
       ttsModel:
         (typeof resolvedTTS.providerConfig.model === 'string' && resolvedTTS.providerConfig.model.trim()) ||
         runtimeDefaults.ttsModel ||
-        (resolvedTTS.provider === 'openai' ? 'gpt-4o-mini-tts' : 'aura-2'),
+        defaultTTSModel,
       ttsPitch: resolvedTTS.pitch,
       ttsProvider: resolvedTTS.provider,
       ttsSpeed: resolvedTTS.speed,
-      ttsVoice: resolvedTTS.voice || runtimeDefaults.ttsVoice || 'alloy',
+      ttsVoice:
+        resolvedTTS.voice ||
+        (resolvedTTS.provider === 'inworld' ? defaultTTSVoice : runtimeDefaults.ttsVoice) ||
+        defaultTTSVoice,
       ttsVoiceId:
         typeof resolvedTTS.providerConfig.voiceId === 'string' ? resolvedTTS.providerConfig.voiceId.trim() : '',
     },

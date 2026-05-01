@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     admins: Admin;
     players: Player;
+    'prelaunch-leads': PrelaunchLead;
     'player-mappings': PlayerMapping;
     campaigns: Campaign;
     worlds: World;
@@ -85,6 +86,7 @@ export interface Config {
   collectionsSelect: {
     admins: AdminsSelect<false> | AdminsSelect<true>;
     players: PlayersSelect<false> | PlayersSelect<true>;
+    'prelaunch-leads': PrelaunchLeadsSelect<false> | PrelaunchLeadsSelect<true>;
     'player-mappings': PlayerMappingsSelect<false> | PlayerMappingsSelect<true>;
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
     worlds: WorldsSelect<false> | WorldsSelect<true>;
@@ -207,7 +209,7 @@ export interface Player {
     /**
      * TTS provider for this player-owned GM voice.
      */
-    provider?: ('openai' | 'deepgram' | 'elevenlabs') | null;
+    provider?: ('openai' | 'deepgram' | 'elevenlabs' | 'inworld') | null;
     /**
      * Voice slug for this player-owned GM voice.
      */
@@ -362,6 +364,23 @@ export interface World {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "prelaunch-leads".
+ */
+export interface PrelaunchLead {
+  id: number;
+  email: string;
+  name?: string | null;
+  source: 'kickstarter' | 'product-hunt' | 'manual';
+  /**
+   * Optional note from the lead or operator.
+   */
+  notes?: string | null;
+  status: 'new' | 'contacted' | 'warm' | 'backer';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "player-mappings".
  */
 export interface PlayerMapping {
@@ -426,6 +445,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'players';
         value: number | Player;
+      } | null)
+    | ({
+        relationTo: 'prelaunch-leads';
+        value: number | PrelaunchLead;
       } | null)
     | ({
         relationTo: 'player-mappings';
@@ -551,6 +574,19 @@ export interface PlayersSelect<T extends boolean = true> {
       };
   lastSeenAt?: T;
   lastRoomName?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "prelaunch-leads_select".
+ */
+export interface PrelaunchLeadsSelect<T extends boolean = true> {
+  email?: T;
+  name?: T;
+  source?: T;
+  notes?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -791,9 +827,9 @@ export interface VoiceSetting {
   /**
    * The live TTS backend for player-owned sessions. Change this here, not in Runtime Defaults.
    */
-  provider: 'openai' | 'deepgram' | 'elevenlabs';
+  provider: 'openai' | 'deepgram' | 'elevenlabs' | 'inworld';
   /**
-   * Voice id or model slug. For Deepgram you can use a short suffix like thalia-en or a full voice id like aura-asteria-en.
+   * Voice id or model slug. For Inworld use a voice name like Sebastian. For Deepgram you can use a short suffix like thalia-en or a full voice id like aura-asteria-en.
    */
   voice: string;
   /**
@@ -819,6 +855,13 @@ export interface VoiceSetting {
   elevenlabs?: {
     apiKey?: string | null;
     voiceId?: string | null;
+  };
+  inworld?: {
+    /**
+     * Base64 Inworld API key. Prefer storing it in Coolify as INWORLD_API_KEY and leaving this editable for overrides.
+     */
+    apiKey?: string | null;
+    model?: string | null;
   };
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -898,6 +941,12 @@ export interface VoiceSettingsSelect<T extends boolean = true> {
     | {
         apiKey?: T;
         voiceId?: T;
+      };
+  inworld?:
+    | T
+    | {
+        apiKey?: T;
+        model?: T;
       };
   updatedAt?: T;
   createdAt?: T;

@@ -23,6 +23,13 @@ const previewSchema = z.object({
         })
         .optional()
         .nullable(),
+      inworld: z
+        .object({
+          apiKey: z.string().optional().nullable(),
+          model: z.string().optional().nullable(),
+        })
+        .optional()
+        .nullable(),
       instructions: z.string().optional().nullable(),
       openai: z
         .object({
@@ -32,7 +39,7 @@ const previewSchema = z.object({
         .optional()
         .nullable(),
       pitch: z.number().optional().nullable(),
-      provider: z.enum(['openai', 'deepgram', 'elevenlabs']).optional().nullable(),
+      provider: z.enum(['openai', 'deepgram', 'elevenlabs', 'inworld']).optional().nullable(),
       speed: z.number().optional().nullable(),
       voice: z.string().optional().nullable(),
     })

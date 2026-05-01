@@ -6,7 +6,7 @@ import re
 from dotenv import load_dotenv
 from livekit.agents import Agent, AgentServer, AgentSession, JobContext, RunContext, cli, room_io
 from livekit.agents.llm import function_tool
-from livekit.plugins import deepgram, openai
+from livekit.plugins import deepgram, inworld, openai
 
 from gm_agent.config import load_settings
 from gm_agent.control_plane import ControlPlaneClient, SessionContext
@@ -107,6 +107,15 @@ def build_tts(runtime: SessionContext):
             model="gpt-4o-mini-tts",
             voice=build_openai_tts_voice(runtime),
             instructions=(runtime.runtime_defaults.tts_instructions or "").strip() or None,
+        )
+
+    if runtime.runtime_defaults.tts_provider == "inworld":
+        return inworld.TTS(
+            model=runtime.runtime_defaults.tts_model or "inworld-tts-1.5-max",
+            voice=runtime.runtime_defaults.tts_voice or runtime.runtime_defaults.tts_voice_id or "Sebastian",
+            encoding="MP3",
+            speaking_rate=runtime.runtime_defaults.tts_speed or 1,
+            temperature=1,
         )
 
     try:

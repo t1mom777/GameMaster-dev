@@ -1,6 +1,6 @@
 import type { Payload } from 'payload'
 
-type TTSProvider = 'openai' | 'deepgram' | 'elevenlabs'
+type TTSProvider = 'openai' | 'deepgram' | 'elevenlabs' | 'inworld'
 
 type ProviderGroup = {
   apiKey?: string | null
@@ -11,6 +11,7 @@ type ProviderGroup = {
 type VoiceSettingsGlobal = {
   deepgram?: ProviderGroup | null
   elevenlabs?: ProviderGroup | null
+  inworld?: ProviderGroup | null
   instructions?: string | null
   openai?: ProviderGroup | null
   pitch?: number | null
@@ -66,7 +67,7 @@ function asNumber(value: unknown, fallback: number): number {
 }
 
 function normalizeProvider(value: unknown, fallback: TTSProvider): TTSProvider {
-  return value === 'openai' || value === 'deepgram' || value === 'elevenlabs' ? value : fallback
+  return value === 'openai' || value === 'deepgram' || value === 'elevenlabs' || value === 'inworld' ? value : fallback
 }
 
 function getProviderConfig(globalSettings: VoiceSettingsGlobal, provider: TTSProvider): ProviderGroup {
@@ -76,6 +77,10 @@ function getProviderConfig(globalSettings: VoiceSettingsGlobal, provider: TTSPro
 
   if (provider === 'elevenlabs') {
     return globalSettings.elevenlabs || {}
+  }
+
+  if (provider === 'inworld') {
+    return globalSettings.inworld || {}
   }
 
   return globalSettings.deepgram || {}
@@ -104,8 +109,13 @@ function mergeVoiceSettings(
     ...overrideSettings,
     deepgram: mergeProviderGroup(baseSettings.deepgram, overrideSettings.deepgram),
     elevenlabs: mergeProviderGroup(baseSettings.elevenlabs, overrideSettings.elevenlabs),
+    inworld: mergeProviderGroup(baseSettings.inworld, overrideSettings.inworld),
     openai: mergeProviderGroup(baseSettings.openai, overrideSettings.openai),
   }
+}
+
+function getEnvFallback(key: string): string {
+  return asText(process.env[key])
 }
 
 function buildDeepgramVoiceModel(model: string, voice: string): string {
@@ -185,6 +195,61 @@ async function requireOk(response: Response, provider: TTSProvider) {
 
   const body = await response.text().catch(() => '')
   throw new Error(`${provider} TTS request failed (${response.status}): ${body.slice(0, 240)}`)
+}
+
+async function collectInworldAudio(response: Response): Promise<Buffer> {
+  if (!response.body) {
+    return Buffer.from(await response.arrayBuffer())
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  const chunks: Buffer[] = []
+  let buffered = ''
+
+  const consumeLine = (line: string) => {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      return
+    }
+
+    const parsed = JSON.parse(trimmed) as {
+      result?: {
+        audioContent?: string
+      }
+    }
+    const audioContent = parsed.result?.audioContent
+
+    if (audioContent) {
+      chunks.push(Buffer.from(audioContent, 'base64'))
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    buffered += decoder.decode(value, { stream: !done })
+
+    const lines = buffered.split(/\r?\n/)
+    buffered = lines.pop() || ''
+
+    for (const line of lines) {
+      consumeLine(line)
+    }
+
+    if (done) {
+      break
+    }
+  }
+
+  if (buffered.trim()) {
+    consumeLine(buffered)
+  }
+
+  if (!chunks.length) {
+    throw new Error('Inworld TTS returned no audio content.')
+  }
+
+  return Buffer.concat(chunks)
 }
 
 const providerMap: Record<TTSProvider, ProviderHandler> = {
@@ -284,6 +349,40 @@ const providerMap: Record<TTSProvider, ProviderHandler> = {
     return {
       audio: Buffer.from(await response.arrayBuffer()),
       mimeType: response.headers.get('content-type') || 'audio/mpeg',
+    }
+  },
+  inworld: async ({ settings, text }) => {
+    const apiKey = asText(settings.providerConfig.apiKey) || getEnvFallback('INWORLD_API_KEY')
+    const model = asText(settings.providerConfig.model) || 'inworld-tts-1.5-max'
+    const voice = asText(settings.voice) || asText(settings.providerConfig.voiceId) || 'Sebastian'
+
+    if (!apiKey) {
+      throw new Error('Inworld TTS API key is missing in voice-settings or INWORLD_API_KEY.')
+    }
+
+    const response = await fetch('https://api.inworld.ai/tts/v1/voice:stream', {
+      body: JSON.stringify({
+        audio_config: {
+          audio_encoding: 'MP3',
+          speaking_rate: settings.speed,
+        },
+        model_id: model,
+        temperature: 1,
+        text,
+        voice_id: voice,
+      }),
+      headers: {
+        Authorization: `Basic ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    })
+
+    await requireOk(response, 'inworld')
+
+    return {
+      audio: await collectInworldAudio(response),
+      mimeType: 'audio/mpeg',
     }
   },
 }

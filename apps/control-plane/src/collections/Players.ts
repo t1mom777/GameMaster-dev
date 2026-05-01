@@ -226,6 +226,10 @@ export const Players: CollectionConfig = {
               label: 'ElevenLabs',
               value: 'elevenlabs',
             },
+            {
+              label: 'Inworld',
+              value: 'inworld',
+            },
           ],
           required: true,
           type: 'select',
