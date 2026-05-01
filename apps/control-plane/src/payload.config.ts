@@ -20,6 +20,7 @@ import { adminVoicePreviewEndpoint } from './endpoints/admin-voice-preview'
 import { healthEndpoint } from './endpoints/health'
 import { internalBootstrapEndpoint } from './endpoints/internal-bootstrap'
 import { internalDocumentStorageEndpoint } from './endpoints/internal-document-storage'
+import { internalReindexDocumentEndpoint } from './endpoints/internal-reindex-document'
 import { publicJoinEndpoint } from './endpoints/public-join'
 import {
   publicPlayerMappingsGetEndpoint,
@@ -78,6 +79,7 @@ export default buildConfig({
     publicPrelaunchLeadsEndpoint,
     internalBootstrapEndpoint,
     internalDocumentStorageEndpoint,
+    internalReindexDocumentEndpoint,
     runtimeSessionEndpoint,
     runtimeRetrieveEndpoint,
     adminReindexDocumentEndpoint,
