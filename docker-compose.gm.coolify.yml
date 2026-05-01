@@ -36,6 +36,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      livekit:
+        condition: service_started
     ports:
       - "3000"
     labels:
@@ -76,6 +78,8 @@ services:
     depends_on:
       control-plane:
         condition: service_started
+      livekit:
+        condition: service_started
 
   postgres:
     image: postgres:16-alpine
@@ -97,6 +101,41 @@ services:
       - qdrant_data:/qdrant/storage
     ports:
       - "6333"
+
+  livekit:
+    image: livekit/livekit-server:v1.9.8
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: 7891
+          udp_port: 7892
+          use_external_ip: true
+        turn:
+          enabled: true
+          udp_port: 3479
+        keys:
+          ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.gzip.compress=true
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-livekit.entryPoints=http
+      - traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-livekit.middlewares=redirect-to-https
+      - 'traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-livekit.rule=Host(`rtc.gm.dima.click`) && PathPrefix(`/`)'
+      - traefik.http.routers.http-0-occoskkocc4ocgcs8ck40gg4-livekit.service=http-0-occoskkocc4ocgcs8ck40gg4-livekit
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-livekit.entryPoints=https
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-livekit.middlewares=gzip
+      - 'traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-livekit.rule=Host(`rtc.gm.dima.click`) && PathPrefix(`/`)'
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-livekit.service=https-0-occoskkocc4ocgcs8ck40gg4-livekit
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-livekit.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-0-occoskkocc4ocgcs8ck40gg4-livekit.tls=true
+      - traefik.http.services.http-0-occoskkocc4ocgcs8ck40gg4-livekit.loadbalancer.server.port=7880
+      - traefik.http.services.https-0-occoskkocc4ocgcs8ck40gg4-livekit.loadbalancer.server.port=7880
+    ports:
+      - "7891:7891"
+      - "7892:7892/udp"
+      - "3479:3479/udp"
 
 volumes:
   postgres_data:
