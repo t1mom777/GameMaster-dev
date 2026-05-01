@@ -83,6 +83,16 @@ def build_openai_tts_voice(runtime: SessionContext) -> str:
 
 
 def build_tts(runtime: SessionContext):
+    logger.info(
+        "Building TTS provider",
+        extra={
+            "tts_provider": runtime.runtime_defaults.tts_provider,
+            "tts_model": runtime.runtime_defaults.tts_model,
+            "tts_voice": runtime.runtime_defaults.tts_voice,
+            "tts_speed": runtime.runtime_defaults.tts_speed,
+        },
+    )
+
     if runtime.runtime_defaults.tts_provider == "openai":
         instructions = (runtime.runtime_defaults.tts_instructions or "").strip() or None
         return openai.TTS(
@@ -110,10 +120,12 @@ def build_tts(runtime: SessionContext):
         )
 
     if runtime.runtime_defaults.tts_provider == "inworld":
+        # The LiveKit Inworld plugin streams realtime room audio. Keep this in
+        # PCM so the agent can publish playable audio frames; MP3 is only useful
+        # for the admin preview/download-style HTTP endpoint.
         return inworld.TTS(
             model=runtime.runtime_defaults.tts_model or "inworld-tts-1.5-max",
             voice=runtime.runtime_defaults.tts_voice or runtime.runtime_defaults.tts_voice_id or "Sebastian",
-            encoding="MP3",
             speaking_rate=runtime.runtime_defaults.tts_speed or 1,
             temperature=1,
         )
@@ -211,8 +223,29 @@ async def entrypoint(ctx: JobContext) -> None:
         "room": ctx.room.name,
     }
 
+    logger.info("Starting GM agent job for room %s", ctx.room.name)
     control_plane = ControlPlaneClient(settings.control_plane_url, settings.gm_internal_api_token)
-    runtime = await control_plane.load_session_context(ctx.room.name)
+    try:
+        runtime = await control_plane.load_session_context(ctx.room.name)
+    except Exception:
+        logger.exception("Failed to load runtime context for room %s", ctx.room.name)
+        raise
+
+    logger.info(
+        "Loaded runtime context",
+        extra={
+            "room": ctx.room.name,
+            "session_title": runtime.session_title,
+            "active_document_count": len(runtime.active_document_ids),
+            "llm_provider": runtime.runtime_defaults.llm_provider,
+            "llm_model": runtime.runtime_defaults.llm_model,
+            "stt_provider": runtime.runtime_defaults.stt_provider,
+            "stt_model": runtime.runtime_defaults.stt_model,
+            "tts_provider": runtime.runtime_defaults.tts_provider,
+            "tts_model": runtime.runtime_defaults.tts_model,
+            "tts_voice": runtime.runtime_defaults.tts_voice,
+        },
+    )
 
     session = AgentSession(
         stt=build_stt(runtime),
