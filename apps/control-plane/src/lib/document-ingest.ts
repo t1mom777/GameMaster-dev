@@ -34,7 +34,16 @@ type QueueDocumentIngestOptions = {
 }
 
 const TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown'])
+const QDRANT_UPSERT_BATCH_SIZE = positiveIntegerFromEnv('DOCUMENT_QDRANT_UPSERT_BATCH_SIZE', 64)
+const QDRANT_UPSERT_MAX_ATTEMPTS = 4
 const inflightDocumentIngests = new Set<string>()
+
+type QdrantClientInstance = ReturnType<typeof getQdrantClient>
+type QdrantPoint = {
+  id: number | string
+  payload: Record<string, unknown>
+  vector: number[]
+}
 
 type DocumentStatusPatch = {
   chunkCount?: number | null
@@ -56,6 +65,83 @@ type DocumentStatusPatch = {
 
 function resolveUploadPath(filename: string): string {
   return path.resolve(process.cwd(), 'media/documents', filename)
+}
+
+function positiveIntegerFromEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] || '', 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function progressForBatch(
+  batchIndex: number,
+  totalBatches: number,
+  start: number,
+  end: number,
+): number {
+  if (totalBatches <= 0) {
+    return start
+  }
+
+  const ratio = Math.min(1, Math.max(0, (batchIndex + 1) / totalBatches))
+  return Math.min(end, Math.max(start, Math.round(start + (end - start) * ratio)))
+}
+
+function errorCode(error: unknown): string {
+  return error && typeof error === 'object' && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : ''
+}
+
+function isRetriableNetworkError(error: unknown): boolean {
+  const code = errorCode(error).toUpperCase()
+  if (['EPIPE', 'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED'].includes(code)) {
+    return true
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  return (
+    message.includes('fetch failed') ||
+    message.includes('bad gateway') ||
+    message.includes('socket') ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('429') ||
+    message.includes('500') ||
+    message.includes('502') ||
+    message.includes('503') ||
+    message.includes('504')
+  )
+}
+
+async function upsertPointsWithRetry(
+  client: QdrantClientInstance,
+  collection: string,
+  points: QdrantPoint[],
+): Promise<void> {
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= QDRANT_UPSERT_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await client.upsert(collection, {
+        points,
+        wait: true,
+      })
+      return
+    } catch (error) {
+      lastError = error
+      if (attempt >= QDRANT_UPSERT_MAX_ATTEMPTS || !isRetriableNetworkError(error)) {
+        break
+      }
+
+      await sleep(500 * attempt)
+    }
+  }
+
+  throw lastError
 }
 
 function chunkText(input: string, maxLength = 1200, overlap = 200): string[] {
@@ -162,7 +248,11 @@ async function extractMarkdown(document: DocumentRecord): Promise<string> {
     })
   }
 
-  if (TEXT_MIME_TYPES.has(extension === '.md' ? 'text/markdown' : 'text/plain') || extension === '.txt' || extension === '.md') {
+  if (
+    TEXT_MIME_TYPES.has(extension === '.md' ? 'text/markdown' : 'text/plain') ||
+    extension === '.txt' ||
+    extension === '.md'
+  ) {
     return normalizeDocumentToMarkdown({
       extension: extension === '.md' ? '.md' : '.txt',
       text: buffer.toString('utf-8'),
@@ -172,7 +262,9 @@ async function extractMarkdown(document: DocumentRecord): Promise<string> {
   throw new Error(`Unsupported document type: ${extension || 'unknown'}`)
 }
 
-function relationId(input: { id?: string | number } | string | number | null | undefined): string | null {
+function relationId(
+  input: { id?: string | number } | string | number | null | undefined,
+): string | null {
   if (!input) {
     return null
   }
@@ -210,7 +302,11 @@ function qdrantPointId(documentId: number | string, chunkIndex: number): number 
     return numericId * 100000 + chunkIndex
   }
 
-  const hex = crypto.createHash('sha1').update(`${documentId}:${chunkIndex}`).digest('hex').slice(0, 32)
+  const hex = crypto
+    .createHash('sha1')
+    .update(`${documentId}:${chunkIndex}`)
+    .digest('hex')
+    .slice(0, 32)
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
@@ -250,7 +346,10 @@ async function deleteUploadedFile(filename?: string | null): Promise<void> {
   try {
     await fs.unlink(resolveUploadPath(filename))
   } catch (error) {
-    const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : ''
+    const code =
+      error && typeof error === 'object' && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : ''
     if (code !== 'ENOENT') {
       throw error
     }
@@ -397,43 +496,92 @@ export async function ingestDocument(
     {
       sourceFilename: document.sourceFilename || document.filename || null,
       sourceFilesize:
-        typeof document.sourceFilesize === 'number' ? document.sourceFilesize : document.filesize || null,
+        typeof document.sourceFilesize === 'number'
+          ? document.sourceFilesize
+          : document.filesize || null,
       sourceMarkdown: canonicalMarkdown,
       sourceMimeType:
-        document.sourceMimeType || document.mimeType || (document.filename?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
+        document.sourceMimeType ||
+        document.mimeType ||
+        (document.filename?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain'),
     },
     req,
   )
 
   await patchIngestProgress(payload, document.id, 'chunking', 56, req)
-  await patchIngestProgress(payload, document.id, 'embedding', 68, req)
-  const vectors = await embedTexts(chunks)
-  const firstVector = vectors[0]
-
-  if (!firstVector?.length) {
-    throw new Error('No embeddings were generated for this document.')
-  }
-
-  await ensureKnowledgeCollection(firstVector.length)
-
   const client = getQdrantClient()
   const collection = getQdrantCollection()
-
-  await removeDocumentVectors(String(document.id))
-
   const rulesetId = relationId(document.ruleset)
   const sessionId = relationId(document.session)
+  const totalBatches = Math.ceil(chunks.length / QDRANT_UPSERT_BATCH_SIZE)
+  let collectionReady = false
+  let indexedChunks = 0
 
-  const points = vectors.map((vector, index) => ({
-      id: qdrantPointId(document.id, index),
-      payload: buildQdrantPayload(document, index, chunks[index] || '', rulesetId, sessionId),
-      vector,
-    }))
+  for (let start = 0; start < chunks.length; start += QDRANT_UPSERT_BATCH_SIZE) {
+    const batchIndex = Math.floor(start / QDRANT_UPSERT_BATCH_SIZE)
+    const chunkBatch = chunks.slice(start, start + QDRANT_UPSERT_BATCH_SIZE)
+    const batchLabel = `${batchIndex + 1}/${totalBatches}`
 
-  await client.upsert(collection, {
-    points,
-    wait: true,
-  })
+    await patchIngestProgress(
+      payload,
+      document.id,
+      `embedding ${batchLabel}`,
+      progressForBatch(batchIndex, totalBatches, 68, 86),
+      req,
+    )
+
+    const vectors = await embedTexts(chunkBatch)
+    const firstVector = vectors.find((vector) => vector?.length)
+
+    if (!firstVector?.length) {
+      throw new Error(`No embeddings were generated for document batch ${batchLabel}.`)
+    }
+
+    if (!collectionReady) {
+      await ensureKnowledgeCollection(firstVector.length)
+      await removeDocumentVectors(String(document.id))
+      collectionReady = true
+    }
+
+    const points = vectors
+      .map((vector, offset) => {
+        const chunkIndex = start + offset
+        if (!vector?.length) {
+          return null
+        }
+
+        return {
+          id: qdrantPointId(document.id, chunkIndex),
+          payload: buildQdrantPayload(
+            document,
+            chunkIndex,
+            chunks[chunkIndex] || '',
+            rulesetId,
+            sessionId,
+          ) as Record<string, unknown>,
+          vector,
+        } satisfies QdrantPoint
+      })
+      .filter((point): point is QdrantPoint => Boolean(point))
+
+    if (!points.length) {
+      throw new Error(`No Qdrant points were generated for document batch ${batchLabel}.`)
+    }
+
+    await patchIngestProgress(
+      payload,
+      document.id,
+      `indexing ${batchLabel}`,
+      progressForBatch(batchIndex, totalBatches, 87, 96),
+      req,
+    )
+    await upsertPointsWithRetry(client, collection, points)
+    indexedChunks += points.length
+  }
+
+  if (!indexedChunks) {
+    throw new Error('No embeddings were indexed for this document.')
+  }
 
   await deleteUploadedFile(document.filename)
 
@@ -482,11 +630,7 @@ export function queueDocumentIngest(
         const document = await loadDocumentRecord(payload, documentId)
         await ingestDocument(payload, document)
       } catch (error) {
-        await markDocumentIngestError(
-          payload,
-          documentId,
-          describeIngestError(error),
-        )
+        await markDocumentIngestError(payload, documentId, describeIngestError(error))
       } finally {
         inflightDocumentIngests.delete(inflightKey)
       }

@@ -1,7 +1,7 @@
 import type { Endpoint } from 'payload'
 
 import { requireAdmin } from '@/lib/access'
-import { ingestDocument } from '@/lib/document-ingest'
+import { markDocumentIndexing, queueDocumentIngest } from '@/lib/document-ingest'
 
 export const adminReindexDocumentEndpoint: Endpoint = {
   handler: async (req) => {
@@ -27,22 +27,17 @@ export const adminReindexDocumentEndpoint: Endpoint = {
       id: documentId,
     })
 
-    await req.payload.update({
-      collection: 'documents',
-      context: {
-        skipDocumentSync: true,
-      },
-      data: {
-        ingestError: '',
-        reindexRequested: false,
-        status: 'indexing',
-      },
-      id: String(document.id),
-    })
-
     try {
-      await ingestDocument(req.payload, document)
-      return Response.json({ ok: true })
+      await markDocumentIndexing(req.payload, document.id)
+      queueDocumentIngest(req.payload, document.id, { alreadyMarkedIndexing: true })
+
+      return Response.json(
+        {
+          ok: true,
+          status: 'queued',
+        },
+        { status: 202 },
+      )
     } catch (error) {
       await req.payload.update({
         collection: 'documents',
