@@ -13,17 +13,29 @@ import config from '@/payload.config'
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage(props: { searchParams?: Promise<{ auth?: string }> }) {
-  const payload = await getPayload({ config })
   const playerSession = readPlayerSessionFromCookieStore(await cookies())
   const searchParams = props.searchParams ? await props.searchParams : undefined
-  const playerRecord = await loadAuthenticatedPlayer(payload, playerSession)
-  const siteSettings = await payload.findGlobal({
-    slug: 'site-settings',
-  })
-  const playerLibrary = playerRecord ? await listPlayerLibrary(payload, playerRecord) : []
-  const playerGame = playerRecord ? await ensurePlayerGameSession(payload, playerRecord) : null
+
+  let playerRecord: Awaited<ReturnType<typeof loadAuthenticatedPlayer>> = null
+  let playerLibrary: Awaited<ReturnType<typeof listPlayerLibrary>> = []
+  let playerGame: Awaited<ReturnType<typeof ensurePlayerGameSession>> | null = null
+
+  if (playerSession) {
+    try {
+      const payload = await getPayload({ config })
+      playerRecord = await loadAuthenticatedPlayer(payload, playerSession)
+      if (playerRecord) {
+        playerLibrary = await listPlayerLibrary(payload, playerRecord)
+        playerGame = await ensurePlayerGameSession(payload, playerRecord)
+      }
+    } catch (error) {
+      console.error('Unable to load landing player state.', error)
+    }
+  }
+
   const primaryBook = playerLibrary.find((entry) => entry.isPrimary) || null
   const activeBooks = playerLibrary.filter((entry) => entry.isActive)
+  const hasPlayerSession = Boolean(playerRecord)
 
   const authNotice =
     searchParams?.auth === 'google-state'
@@ -32,19 +44,19 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         ? 'We could not finish sign-in. Try again or use a different Google account.'
         : null
   const readyBooks = activeBooks.filter((entry) => entry.status === 'ready')
-  const heroLede = playerSession
+  const heroLede = hasPlayerSession
     ? 'Your table, books, and current game are ready. Open the shared device and continue in seconds.'
     : 'A virtual GM that remembers your world, your story, and every player by voice.'
-  const subline = playerSession
+  const subline = hasPlayerSession
     ? `${primaryBook ? `${primaryBook.title} is set as your main rulebook.` : 'Add your main rulebook next.'} ${readyBooks.length} ready book${readyBooks.length === 1 ? '' : 's'} can ground the next session.`
     : 'No setup. Start in seconds.'
-  const supportLine = playerSession ? 'Built for real tabletop sessions.' : 'Built for real tabletop sessions.'
-  const primaryHref = playerSession
+  const supportLine = 'Built for real tabletop sessions.'
+  const primaryHref = hasPlayerSession
     ? '/play'
     : isGooglePlayerAuthConfigured()
       ? '/auth/google/start?returnTo=%2Fplay'
       : '/login'
-  const primaryLabel = playerSession ? 'Open your table' : isGooglePlayerAuthConfigured() ? 'Continue with Google' : 'Start playing'
+  const primaryLabel = hasPlayerSession ? 'Open your table' : isGooglePlayerAuthConfigured() ? 'Continue with Google' : 'Start playing'
 
   return (
     <main className="surface surface--landing">
@@ -55,7 +67,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         <div className="landing-minimal__hero">
           <div className="landing-minimal__copy">
             <h1>
-              {playerSession ? (
+              {hasPlayerSession ? (
                 <>
                   Return to your table
                   <br />
@@ -102,7 +114,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
               <p>{supportLine}</p>
             </div>
 
-            {!playerSession ? (
+            {!hasPlayerSession ? (
               <Link className="landing-minimal__founder-link" href="/kickstarter">
                 Founder Access opens on Kickstarter
               </Link>
@@ -140,7 +152,7 @@ export default async function HomePage(props: { searchParams?: Promise<{ auth?: 
         </div>
 
         <div className="landing-minimal__footer-copy">
-          {playerSession ? (
+          {hasPlayerSession ? (
             <>
               <p>One table. One device. Your story stays intact.</p>
               <p className="landing-minimal__status">
